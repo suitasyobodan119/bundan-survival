@@ -22,7 +22,8 @@
   --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
   color-scheme:light;
 }
-html,body{height:100%;overflow:hidden;background:var(--snow);color:var(--ink)}
+html,body{height:100%;overflow:hidden;background:var(--snow);color:var(--ink);overscroll-behavior:none;touch-action:none}
+body{position:fixed;inset:0}
 body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 *{box-sizing:border-box}
 #cv{position:fixed;inset:0;display:block;touch-action:none}
@@ -51,6 +52,12 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 #goal.alert{background:var(--shu)} #goal.alert .tag{background:#fff;color:var(--shu)}
 #ride{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);z-index:6;border:0;border-radius:16px;background:var(--shu);color:#fff;font-family:var(--display);font-size:17px;padding:14px 26px;box-shadow:0 6px 18px rgba(229,67,42,.45),inset 0 -4px 0 rgba(0,0,0,.18);cursor:pointer;white-space:nowrap}
 #ride.off{background:var(--navy);box-shadow:0 6px 18px rgba(34,53,92,.4),inset 0 -4px 0 rgba(0,0,0,.18)}
+#zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
+#zoom button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel);font-family:var(--display);font-size:22px;line-height:1;color:var(--ink);box-shadow:0 2px 8px rgba(27,39,64,.2);cursor:pointer}
+#zoom button:disabled{opacity:.4;cursor:default}
+#zoom button:focus-visible{outline:3px solid var(--kin);outline-offset:2px}
+.warn{background:#fff4e0;border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.55}
+.warn b{color:var(--shu)}
 #hint{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 30px);transform:translateX(-50%);background:rgba(27,39,64,.84);color:#fff;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;pointer-events:none;white-space:nowrap;z-index:5}
 #pop{opacity:0;position:fixed;left:0;right:0;top:38%;z-index:7;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;padding-inline:16px;text-align:center}
 #pop h3{margin:0;font-family:var(--display);font-weight:400;font-size:34px;color:#fff;-webkit-text-stroke:2px var(--shu);paint-order:stroke fill;text-shadow:0 4px 0 var(--shu),0 8px 18px rgba(0,0,0,.25)}
@@ -62,7 +69,7 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 .toast.ok{border-left-color:var(--ok)} .toast.ng{border-left-color:var(--shu)}
 @keyframes tin{from{transform:translateY(-6px);opacity:0}to{transform:none;opacity:1}}
 .modal{position:fixed;inset:0;z-index:10;background:rgba(20,30,50,.55);display:grid;place-items:center;padding:24px 16px}
-.box{width:100%;max-width:400px;background:#fff;border-radius:20px;padding:22px 20px;display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow:auto}
+.box{touch-action:pan-y;width:100%;max-width:400px;background:#fff;border-radius:20px;padding:22px 20px;display:flex;flex-direction:column;gap:12px;max-height:88vh;overflow:auto}
 .box h2{margin:0;font-family:var(--display);font-weight:400;font-size:30px;color:var(--shu);text-align:center;line-height:1.2}
 .box p{margin:0;line-height:1.6}
 .box .lead{text-align:center;font-weight:700}
@@ -90,6 +97,7 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
   </div>
   <div id="goal"><span class="tag" id="goalTag">目標</span><p id="goalText"></p></div>
 </div>
+<div id="zoom"><button id="zIn" aria-label="ズームイン">＋</button><button id="zOut" aria-label="ズームアウト">－</button></div>
 <button id="ride" hidden>ポンプ車に乗る</button>
 <div id="hint">指でなぞると歩くよ</div>
 <div id="pop"><h3 id="popH"></h3><p id="popP"></p></div>
@@ -133,9 +141,9 @@ const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
 
 /* ===================== 状態 ===================== */
 let S;
-function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false}}
+function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.v===3?s:null}catch(e){return null}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function save(){if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 
 const radius=()=>RAD[S.lv.yagura];
 const cap=()=>CAPS[S.lv.bag];
@@ -277,11 +285,20 @@ function updGuide(){
 }
 
 /* ===================== 入力 ===================== */
+document.addEventListener('touchmove',e=>{if(!e.target.closest||!e.target.closest('.box'))e.preventDefault()},{passive:false});
+['gesturestart','gesturechange','dblclick'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
 const keys={};let joy=null,moved=false;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
 const cv=document.getElementById('cv'),cx=cv.getContext('2d');
-cv.addEventListener('pointerdown',e=>{audio();if(AC&&AC.state==='suspended')AC.resume();cv.setPointerCapture(e.pointerId);joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,dx:0,dy:0}});
+const ptrs=new Map();let pinch=null;
+function pinchDist(){const a=[...ptrs.values()];return Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}
+cv.addEventListener('pointerdown',e=>{audio();if(AC&&AC.state==='suspended')AC.resume();cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){joy=null;pinch={d:pinchDist(),z:S.uz};return}
+  if(ptrs.size===1)joy={id:e.pointerId,ox:e.clientX,oy:e.clientY,dx:0,dy:0}});
+cv.addEventListener('pointermove',e=>{if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pinch&&ptrs.size===2){setZoom(pinch.z*pinchDist()/pinch.d)}});
+const endPtr=e=>{ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null};
+cv.addEventListener('pointerup',endPtr);cv.addEventListener('pointercancel',endPtr);
 cv.addEventListener('pointermove',e=>{if(!joy||e.pointerId!==joy.id)return;let dx=e.clientX-joy.ox,dy=e.clientY-joy.oy;const d=Math.hypot(dx,dy),m=52;if(d>m){joy.ox+=dx*(1-m/d);joy.oy+=dy*(1-m/d);dx=e.clientX-joy.ox;dy=e.clientY-joy.oy}joy.dx=dx;joy.dy=dy});
 const endJoy=e=>{if(joy&&e.pointerId===joy.id)joy=null};
 cv.addEventListener('pointerup',endJoy);cv.addEventListener('pointercancel',endJoy);
@@ -421,7 +438,11 @@ function update(dt){
 /* ===================== 描画 ===================== */
 let W=0,H=0,DPR=1,SC=1;const cam={x:START.x,y:START.y};
 function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;cv.style.width=W+'px';cv.style.height=H+'px';SC=clamp(Math.min(W/430,H/700),.7,1.6)}
-const sc=()=>SC*zoom;
+const sc=()=>SC*zoom*S.uz;
+const ZMIN=.55,ZMAX=1.3;
+function setZoom(z){S.uz=clamp(z,ZMIN,ZMAX);document.getElementById('zIn').disabled=S.uz>=ZMAX-.01;document.getElementById('zOut').disabled=S.uz<=ZMIN+.01}
+document.getElementById('zIn').addEventListener('click',()=>{setZoom(S.uz*1.2);save()});
+document.getElementById('zOut').addEventListener('click',()=>{setZoom(S.uz/1.2);save()});
 const toScreen=(x,y)=>({x:(x-cam.x)*sc()+W/2,y:(y-cam.y)*sc()+H*.58});
 function setWorld(){const s=sc(),sx=(Math.random()-.5)*shake,sy=(Math.random()-.5)*shake;cx.setTransform(DPR*s,0,0,DPR*s,DPR*(W/2-cam.x*s+sx),DPR*(H*.58-cam.y*s+sy))}
 function setScreen(){cx.setTransform(DPR,0,0,DPR,0,0)}
@@ -623,36 +644,40 @@ document.getElementById('muteBtn').addEventListener('click',()=>{audio();S.muted
 let paused=false;
 function modal(html){document.getElementById('modalRoot').innerHTML=`<div class="modal" role="dialog" aria-modal="true"><div class="box">${html}</div></div>`;paused=true}
 function closeModal(){document.getElementById('modalRoot').innerHTML='';paused=false;last=performance.now()}
+const INAPP=/Line\/|Instagram|FBAN|FBAV|FB_IAB|Twitter|MicroMessenger|GSA\//i.test(navigator.userAgent);
+const WARN=INAPP?`<div class="warn"><b>アプリの中で開いています。</b>画面が動いてしまうときは、右上や右下のメニューから「ブラウザで開く（Safariで開く）」を選ぶと快適に遊べます。</div>`:'';
 const LOOP=`<ul class="loop">
 <li><span class="n">1</span><span>木に近づく → 自動で切って<b>木材</b>ゲット</span></li>
 <li><span class="n">2</span><span>ヒノコに近づく → 放水で倒して<b>炎の石</b>ゲット</span></li>
 <li><span class="n">3</span><span>詰所の<b>買取所</b>に運ぶ → <b>コイン</b>に変わる</span></li>
 <li><span class="n">4</span><span>光る丸に立つ → コインで<b>斧・ホース・ポンプ車</b>を買って強くなる</span></li>
 </ul>`;
-function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、雪の町を火事から守ろう！</p>${LOOP}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p>`)}
-function menu(){modal(`<h2>メニュー</h2>${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button>`)}
+function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、雪の町を火事から守ろう！</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p>`)}
+function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
+function menu(){modal(`<h2>メニュー</h2>${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button>`)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;audio();
   if(a==='start'){S.started=true;save();closeModal()}
   else if(a==='close')closeModal();
-  else if(a==='reset'){if(b.dataset.arm){S=fresh();S.started=true;resetWorld();save();closeModal();pop('スタート！','木に近づいてみよう')}else{b.dataset.arm='1';b.textContent='もう一度押すとリセット'}}});
+  else if(a==='savequit'){const ok=save();modal(ok?`<h2>セーブしました</h2><p class="lead">このまま閉じてOK。次に開くと、つづきから遊べます。</p><p class="note">同じスマホ・同じブラウザで開いてね</p><button class="btn" data-act="close">ゲームにもどる</button>`:`<h2>セーブできません</h2><p>このブラウザではセーブが使えない設定になっています。Safariで開くとセーブできます。</p><button class="btn" data-act="close">ゲームにもどる</button>`)}
+  else if(a==='reset'){if(b.dataset.arm){const uz=S.uz,mu=S.muted;S=fresh();S.uz=uz;S.muted=mu;S.started=true;resetWorld();save();closeModal();pop('スタート！','木に近づいてみよう')}else{b.dataset.arm='1';b.textContent='もう一度押すとリセット'}}});
 document.getElementById('menuBtn').addEventListener('click',()=>{audio();menu()});
 
 /* ===================== ループ ===================== */
 let last=performance.now();
-function resetWorld(){genWorld();mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;P.hp=5;P.ride=false;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
+function resetWorld(){genWorld();mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=5;P.ride=false;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
   for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);moved=false}
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
   if(!paused&&!document.hidden)update(dt);
-  zoom+=((P.ride?.8:1)-zoom)*Math.min(1,dt*3);
+  zoom+=((P.ride?.85:1)-zoom)*Math.min(1,dt*3);
   cam.x+=(P.x-cam.x)*Math.min(1,dt*6);cam.y+=(P.y-cam.y)*Math.min(1,dt*6);
   updGuide();hud();draw(t);requestAnimationFrame(loop);
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
-  S.seen=S.seen||['sell'];
+  S.seen=S.seen||['sell'];if(!S.uz)S.uz=.8;setZoom(S.uz);
   resize();addEventListener('resize',resize);resetWorld();
-  if(!S.started)intro();
+  if(!S.started)intro();else if(S.earned>0)cont();
   setInterval(save,3000);addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save();last=performance.now()});
   requestAnimationFrame(t=>{last=t;loop(t)});
 }
