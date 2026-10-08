@@ -974,7 +974,7 @@ const BADGES=[
   ['boss','👹','大ヒノコ討伐',()=>S.st.boss>=1],['resc10','🙌','人命救助（10人）',()=>S.st.rescue>=10],['emerg5','🚑','救命の達人（5回）',()=>(S.emN||0)>=5],
   ['ty1','🌀','台風をのりきる',()=>(S.tyN||0)>=1],['typerf','🛡️','完璧な防災',()=>S.st.typerf>=1],['evac10','🏫','避難誘導（10人）',()=>S.st.evac>=10],
   ['truck','🚒','ポンプ車配備',()=>S.lv.truck>=1],['ladder','🪜','はしご車配備',()=>!!S.lv.ladder],['hr','🏢','高層ビル火災 鎮火',()=>S.st.hr>=1],
-  ['gold','🥇','操法大会 金メダル',()=>S.st.sohog>=1],['dist1','🗾','分団を結成',()=>openD().length>=1],['dist4','🏯','吹田をまもる（4分団）',()=>openD().length>=4],
+  ['gold','🥇','操法大会 金メダル',()=>S.st.sohog>=1],['dist1','🗾','2つめの分団を結成',()=>openD().length>=1],['dist4','🏯','吹田をまもる（5分団そろう）',()=>openD().length>=4],
   ['dancho','⭐','団長になる',()=>(S.rank||0)>=6],['daily','📅','今日の任務 完全達成',()=>S.st.dailyall>=1],['forge','⚒️','装備を鍛える（合計+5）',()=>plusTot()>=5],
   ['fac','🏞️','町づくり（施設3つ）',()=>Object.keys(FAC).every(k=>S.lv[k])],['rich','💰','コイン1万枚かせぐ',()=>S.earned>=10000]];
 function checkBadges(silent){let n=0;for(const [id,ic,nm,f] of BADGES){if(S.badges.includes(id))continue;let ok=false;try{ok=f()}catch(e){}if(!ok)continue;S.badges.push(id);n++;
@@ -1196,7 +1196,7 @@ function drawHeat(t){if(!dEv||dEv.k!=='heat')return;for(const p of dEv.ps){if(p.
 drawPads=(o=>function(t){o(t);drawHeat(t)})(drawPads);
 resetWorld=(o=>function(){o();dEv=null;devT=130;lTip=false})(resetWorld);
 update=(o=>function(dt){o(dt);updLadderWater(dt);updDev(dt)})(update);
-BADGES.push(['dist8','🗺️','全分団 結成（8分団）',()=>openD().length>=8],['dev3','🚨','分団の応援出動（3回）',()=>(S.st.dev||0)>=3]);
+BADGES.push(['dist8','🗺️','全9分団 そろう',()=>openD().length>=8],['dev3','🚨','分団の応援出動（3回）',()=>(S.st.dev||0)>=3]);
 
 /* ===================== やさしいモード・送水・ホース延長・心肺蘇生・119番・分団の色・入団案内・記録送信 ===================== */
 const IG_URL='https://www.instagram.com/suitasyobodan119_osaka/';
