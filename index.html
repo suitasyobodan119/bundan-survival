@@ -65,6 +65,10 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 .medal.r3{background:radial-gradient(circle at 35% 30%,#fff3b0,#d19a12);color:#5a3a00}
 .medal.shake{animation:shk .7s ease-in-out}
 @keyframes shk{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg) scale(1.05)}40%{transform:rotate(10deg)}60%{transform:rotate(-8deg) scale(1.08)}80%{transform:rotate(6deg)}}
+.sec{margin:14px 0 6px;font-size:15px;text-align:left}.sec small{font-size:11px;color:var(--mute);font-weight:400;margin-left:6px}
+.dm{display:flex;flex-direction:column;gap:6px}.dmi{display:grid;grid-template-columns:1fr 64px 34px;align-items:center;gap:6px;font-size:13px;text-align:left}.dmi small{font-size:11px;color:var(--mute);text-align:right}.dmi.done span{color:#2f8a55}
+.bdg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.bi{background:#f2f4f8;border-radius:10px;padding:6px 2px;text-align:center;opacity:.55}.bi.on{background:#fff5df;opacity:1;box-shadow:inset 0 0 0 2px #f3b648}.bi span{display:block;font-size:22px;line-height:1.2}.bi small{display:block;font-size:9.5px;line-height:1.25;color:var(--ink)}
+details.how{margin:12px 0;text-align:left}details.how summary{font-weight:700;cursor:pointer;padding:6px 0}
 .eqgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
 .eqi{border-radius:12px;padding:8px 10px;background:#f2f5f9;font-size:12px;line-height:1.4}
 .eqi b{display:block;font-family:var(--display);font-weight:400;font-size:13px}
@@ -217,7 +221,7 @@ const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
 
 /* ===================== 状態 ===================== */
 let S;
-function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0,d_s:0,d_n:0,bus:0},dcrew:{},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
+function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0,d_s:0,d_n:0,bus:0,park:0,bousai:0,museum:0},eqp:{},dlv:{},st:{},badges:[],dcrew:{},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.v===3?s:null}catch(e){return null}}
 function save(){if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 
@@ -226,10 +230,10 @@ const cap=()=>CAPS[S.lv.bag];
 const carry=()=>S.wood+S.stone;
 const chopInt=()=>.32*Math.pow(.75,S.lv.axe-1);
 const woodPer=()=>1+S.lv.axe;
-const hosePow=()=>4*Math.pow(1.6,S.lv.hose-1)*(1+[0,.15,.3,.5][S.eq.coat]);
-const hoseRange=()=>86+12*S.lv.hose+[0,10,20,35][S.eq.nozzle];
-const maxHp=()=>5+S.eq.helmet;
-const spdMul=()=>1+[0,.08,.15,.25][S.eq.boots];
+const hosePow=()=>4*Math.pow(1.6,S.lv.hose-1)*(1+eqB('coat',[0,.15,.3,.5]));
+const hoseRange=()=>86+12*S.lv.hose+eqB('nozzle',[0,10,20,35]);
+const maxHp=()=>5+S.eq.helmet+(S.eq.helmet?Math.floor(eqp('helmet')/2):0);
+const spdMul=()=>1+eqB('boots',[0,.08,.15,.25]);
 const truckPow=()=>10*Math.pow(1.7,S.lv.truck-1)*(S.lv.tank?2:1);
 const truckRange=()=>150+20*S.lv.truck;
 const truckSpeed=()=>150+25*S.lv.truck;
@@ -342,7 +346,7 @@ function ignite(h){h.ev=false;h.st='fire';h.hp=12*(1+.6*(yl()-1));h.burn=0;h.sm=
 function levelUp(id){
   S.paid[id]=0;const p=PADMAP[id];burst(p.x,p.y,'#f3b648',34);snd('buy');buzz(40);shake=6;
   if(id==='box'){S.boxN=(S.boxN||0)+1;giveBox('装備屋で買った');return}
-  if(id.startsWith('dc_')){const k=id.slice(3);S.dcrew=S.dcrew||{};S.dcrew[k]=(S.dcrew[k]||0)+1;addWorker(p.x,p.y);pop(`${UP[id].name}が入団！`,'この分団の木を切って、近くの買取所で売ってくれる');return}
+  if(id.startsWith('dc_')){const k=id.slice(3);S.dcrew=S.dcrew||{};S.dcrew[k]=(S.dcrew[k]||0)+1;addWorker(p.x,p.y,k);pop(`${UP[id].name}が入団！`,'この分団の木を切って、近くの買取所で売ってくれる');return}
   if(id==='bus'){S.lv.bus=1;pop('路線バス 開通！',UP.bus.fx());return}
   if(id.startsWith('d_')){S.lv[id]=1;pop(`${UP[id].name}を結成！`,UP[id].fx());return}
   if(VEHS.includes(id)){S.lv[id]=1;const v=VEH[id];v.x=PADMAP[id].x;v.y=PADMAP[id].y;pop(`${UP[id].name} 配備！`,UP[id].fx());return}
@@ -354,7 +358,7 @@ function levelUp(id){
 }
 
 /* ===================== 団員 ===================== */
-function addWorker(x,y){workers.push({x,y,st:'seek',tg:null,wood:0,t:0,face:1})}
+function addWorker(x,y,home){workers.push({x,y,st:'seek',tg:null,wood:0,t:0,face:1,home:home||null})}
 function updWorker(w,dt){
   const sp=95,sell=PADMAP.sell;
   const move=(tx,ty,r)=>{const d=dist(w.x,w.y,tx,ty);if(d<(r||22))return true;w.x+=(tx-w.x)/d*sp*dt;w.y+=(ty-w.y)/d*sp*dt;w.face=tx>w.x?1:-1;return false};
@@ -362,11 +366,11 @@ function updWorker(w,dt){
     if(!w.tg||w.tg.st!=='up'){let b=null,bd=1e9;for(const tr of trees){if(tr.st!=='up'||tr.fire||!active(tr))continue;const taken=workers.some(o=>o!==w&&o.tg===tr);const d=dist(w.x,w.y,tr.x,tr.y)+(taken?400:0);if(d<bd){bd=d;b=tr}}w.tg=b}
     if(!w.tg)return;if(move(w.tg.x,w.tg.y+6,24)){w.st='chop';w.t=0}
   }else if(w.st==='chop'){
-    w.t+=dt;if(w.t>.9){w.t=0;const tr=w.tg;if(tr&&tr.st==='up'){tr.hp--;tr.shake=.15;chips(tr.x,tr.y-14);if(tr.hp<=0){tr.st='stump';tr.t=20;w.wood+=2}}
+    w.t+=dt;if(w.t>.9/(1+.35*wLv(w))){w.t=0;const tr=w.tg;if(tr&&tr.st==='up'){tr.hp--;tr.shake=.15;chips(tr.x,tr.y-14);if(tr.hp<=0){tr.st='stump';tr.t=20;w.wood+=2}}
       if(!tr||tr.st!=='up')w.st=w.wood>=6?'ret':'seek'}
   }else{
     if(!w.dep)w.dep=nearestDeposit(w.x,w.y);const dp=w.dep;
-    if(move(dp.x,dp.y,26)){if(dp.line!=null){S.rs[dp.line].w+=w.wood;float(dp.x,dp.y-30,'+'+w.wood,'#d9a46e',12)}else if(dp.dsell){const v=Math.floor(w.wood*MULT[S.lv.price]);S.coins+=v;S.earned+=v;float(dp.x,dp.y-30,'+'+v,'#f3b648',13)}else{const v=w.wood*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-20,'+'+Math.floor(v),'#f3b648',13)}w.wood=0;w.dep=null;w.st='seek'}
+    if(move(dp.x,dp.y,26)){if(dp.line!=null){S.rs[dp.line].w+=w.wood;float(dp.x,dp.y-30,'+'+w.wood,'#d9a46e',12)}else if(dp.dsell){const v=Math.floor(w.wood*MULT[S.lv.price]*(1+.5*wLv(w)));S.coins+=v;S.earned+=v;float(dp.x,dp.y-30,'+'+v,'#f3b648',13)}else{const v=w.wood*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-20,'+'+Math.floor(v),'#f3b648',13)}w.wood=0;w.dep=null;w.st='seek'}
   }
 }
 function chips(x,y){for(let i=0;i<4;i++){const a=-Math.PI/2+(Math.random()-.5)*2;parts.push({k:'chip',x,y,vx:Math.cos(a)*90,vy:Math.sin(a)*90,life:.6})}}
@@ -455,6 +459,7 @@ function startTyphoon(){
   em=null;hr=null;if(rain)endRain(true);if(eq){eq.hs.forEach(h=>{h.person=false;h.st='ok'});eq=null}
   ty={ph:'warn',t:75,W:tyWater(),lvl:0,flooded:new Set(),rescued:0,checked:false,boat:false};
   for(const g of segs){g.sacks=0;g.danger=false}
+  if(S.lv.bousai){S.sand=cap();setTimeout(()=>toast('防災倉庫から土嚢が届いた！ 堤防に積もう','ok'),600)}
   const as=activeSegs();as.slice().sort(()=>Math.random()-.5).slice(0,Math.min(as.length,2+Math.floor((S.tyN||0)/2),5)).forEach(g=>g.danger=true);ty.atRisk=houses.filter(h=>active(h)&&h.y>riverY(h.x)&&as.some(g=>dist(h.x,h.y,g.x,g.y)<260));
   const rk=ty.atRisk.slice().sort(()=>Math.random()-.5).slice(0,Math.min(ty.atRisk.length,3+Math.floor((S.tyN||0)/2),5));
   ty.evT=rk.length;evac=rk.map(h=>({h,x:h.x+h.w/2+8,y:h.y+h.h/2+6,st:'wait',face:-1,kid:Math.random()<.4}));
@@ -463,7 +468,7 @@ function startTyphoon(){
 let evac=[];
 function updEvac(dt){let lead=P;for(const e of evac){if(e.st==='wait'){if(dist(P.x,P.y,e.x,e.y)<42){e.st='follow';float(e.x,e.y-40,'ついていきます！','#fff',13);snd('new')}continue}
   if(e.st!=='follow')continue;const d=dist(e.x,e.y,lead.x,lead.y);if(d>24){const sp=Math.min(260,(d-20)*6);e.x+=(lead.x-e.x)/d*sp*dt;e.y+=(lead.y-e.y)/d*sp*dt;e.face=lead.x>e.x?1:-1}e.mv=d>26;lead=e;
-  if(dist(e.x,e.y,SHELTER.x,SHELTER.y)<70){e.st='safe';ty.evN=(ty.evN||0)+1;drop('coin',e.x,e.y,3);addMerit(2);float(e.x,e.y-40,'避難完了！','#fff',14);snd('buy')}}}
+  if(dist(e.x,e.y,SHELTER.x,SHELTER.y)<70){e.st='safe';ty.evN=(ty.evN||0)+1;stAdd('evac');dmAdd('evac');drop('coin',e.x,e.y,3);addMerit(2);float(e.x,e.y-40,'避難完了！','#fff',14);snd('buy')}}}
 
 function updTyphoon(dt){
   if(!ty){
@@ -518,7 +523,7 @@ function endTyphoon(){
   if(bonus)drop('coin',P.x,P.y,bonus);
   pop(perfect?'台風を完璧にのりきった！':'台風をのりきった',`守れた家 ${safe}/${tot}・避難 ${evN}/${evT}人`);
   snd('buy');burst(P.x,P.y-30,'#3d93db',30);addMerit(safe+(perfect?5:0));if(perfect&&tot>0)setTimeout(()=>giveBox('台風から町を守ったごほうび'),1500);
-  S.tyN=(S.tyN||0)+1;S.tyT=360;for(const g of segs)g.sacks=0;S.sand=0;ty=null;
+  if(perfect&&tot>0)stAdd('typerf');S.tyN=(S.tyN||0)+1;S.tyT=360;for(const g of segs)g.sacks=0;S.sand=0;ty=null;
 }
 function tyGuide(){
   if(!ty){if(S.tyT!=null&&S.tyT<15)return{t:`天気予報：まもなく台風が来ます（${Math.ceil(S.tyT)}秒）`,tg:null,mode:'alert'};return null}
@@ -623,7 +628,7 @@ function updEmerg(dt){
     if(arrive){const e=em;em=null;
       quiz('kyukyu','救急出動！','倒れている人を助けよう。正しい答えを選んでね',!!S.lv.amb,ok=>{
         S.f.emerg=true;S.emN=(S.emN||0)+1;
-        if(ok){const c=Math.round((8+4*yl())*(S.lv.amb?1.5:1));drop('coin',e.x,e.y,c);addMerit(5);float(e.x,e.y-50,'救命成功！','#fff',18);burst(e.x,e.y-20,'#2fa86b',24)}
+        if(ok){dmAdd('emerg');const c=Math.round((8+4*yl())*(S.lv.amb?1.5:1));drop('coin',e.x,e.y,c);addMerit(5);float(e.x,e.y-50,'救命成功！','#fff',18);burst(e.x,e.y-20,'#2fa86b',24)}
         else{drop('coin',e.x,e.y,2);addMerit(1);float(e.x,e.y-50,'救急隊に引き継いだ','#fff',14)}});
       return}
     if(em.t<=0){float(em.x,em.y-40,'救急隊が病院へ運んだ','#fff',13);em=null}
@@ -722,7 +727,7 @@ function sohoTap(){if(!sh||sh.done)return;const d=Math.abs(sh.pos-sh.z);let r,cl
   sh.done=true;const sec=(performance.now()-sh.t0)/1000,tot=sec+(sh.okc||0)*1+(sh.miss||0)*4;
   const board=ALL9.filter(n=>n!==(S.home||'吹三')).map(n=>({n:n+'分団',t:5.5+Math.random()*7})).concat([{n:homeName()+'（きみ）',t:tot,me:true}]).sort((a,b)=>a.t-b.t);const place=board.findIndex(x=>x.me)+1;
   const medal=place===1?3:place<=3?2:place<=6?1:0,score=place;
-  const coin=[5,20,40,80][medal]*yl();addMerit([1,3,6,10][medal]);S.sohoCD=90;
+  const coin=[5,20,40,80][medal]*yl();dmAdd('soho');if(medal===3)stAdd('sohog');addMerit([1,3,6,10][medal]);S.sohoCD=90;
   setTimeout(()=>{modal(`<h2>分団対抗 操法大会</h2><div class="medal r${medal||0}">${['参加賞','銅メダル','銀メダル','金メダル'][medal]}</div><p class="lead">分団対抗 ${place}位！（記録 ${tot.toFixed(1)}秒）</p><table class="rk">${board.map((x,i)=>`<tr class="${x.me?'me':''}"><td>${i+1}位</td><td>${x.n}</td><td>${x.t.toFixed(1)}秒</td></tr>`).join('')}</table><p class="note">記録＝かかった時間＋OKは1秒・ミスは4秒のペナルティ</p><div class="shlog">${sh.log.join('')}</div><p class="note">ごほうび コイン${coin}枚${medal===3?'・装備箱':''}<br>次の大会は90秒後に出場できる</p><button class="btn" data-act="close">やったね！</button>`);
     drop('coin',P.x,P.y,coin);if(medal===3)giveBox('操法大会 金メダル');snd(medal>=2?'buy':'new')},500)}
 function drawSoho(p,t){const on=dist(P.x,P.y,p.x,p.y)<34,cd=S.sohoCD>0;
@@ -759,7 +764,7 @@ function updHighrise(dt){
   else if(!P.ride&&dist(P.x,P.y,HRB.x,HRB.y)<220){hrW-=dt;if(hrW<=0){hrW=2.5;float(P.x,P.y-60,'高すぎて届かない！ はしご車で出動しよう','#ffd0c6',13)}}
   const fo=hr.fires.every(f=>f.hp<=0),ps=hr.people.every(p=>p.saved);
   if((fo&&ps)||hr.t<=0){const ok=fo&&ps,sv=hr.people.filter(p=>p.saved).length;hr=null;
-    pop(ok?'高層ビル火災 鎮火・全員救助！':'高層ビル火災 おわり',`助けた人 ${sv}/2`);if(ok){drop('coin',P.x,P.y,25*yl());addMerit(10);const hd=distOf(HRB.x,HRB.y);if(hd)support(hd.id);setTimeout(()=>giveBox('高層ビル火災で全員を救助'),1500)}else addMerit(2)}
+    pop(ok?'高層ビル火災 鎮火・全員救助！':'高層ビル火災 おわり',`助けた人 ${sv}/2`);if(ok){stAdd('hr');drop('coin',P.x,P.y,25*yl());addMerit(10);const hd=distOf(HRB.x,HRB.y);if(hd)support(hd.id);setTimeout(()=>giveBox('高層ビル火災で全員を救助'),1500)}else addMerit(2)}
 }
 function drawHighrise(t,b){box(b.x,b.y,b.w,b.h,b.ht,'#dfe5ec','#9aa8ba');
   for(let r=0;r<7;r++)for(let c=0;c<4;c++){const w=winXY(c,r);cx.fillStyle='#8fb3d6';cx.fillRect(w.x-7,w.y-7,14,12);cx.fillStyle='rgba(255,255,255,.35)';cx.fillRect(w.x-7,w.y-7,14,3)}
@@ -879,6 +884,96 @@ function drawMini(){const sz=mini.width,dpr=sz/112;const cs=[{x:0,y:0,r:radius()
 mini.addEventListener('click',e=>{const r=mini.getBoundingClientRect(),sz=mini.width,px=(e.clientX-r.left)/r.width*sz,py=(e.clientY-r.top)/r.height*sz;const x=(px-sz/2)/miniS,y=(py-sz/2)/miniS;
   if(!inArea(x,y,0)){toast('そこはまだ行けない場所です');return}wp={x,y};toast('地図でえらんだ場所に矢印を出した','ok');snd('new')});
 
+/* ===================== 終盤：鍛冶・詰所強化・施設・今日の任務・バッジ ===================== */
+const eqp=k=>(S.eqp&&S.eqp[k])||0;
+const eqB=(k,arr)=>arr[S.eq[k]]*(1+.2*eqp(k));
+const plusTot=()=>Object.keys(S.eqp||{}).reduce((a,k)=>a+(S.eqp[k]||0),0);
+function forgeSlot(){let b=null,bv=9;for(const k of Object.keys(EQ)){if(!S.eq[k])continue;const v=eqp(k);if(v<5&&v<bv){bv=v;b=k}}return b}
+const FAC={park:{name:'公園',x:-330,y:330,cost:2000,need:()=>S.lv.yagura>=4,fx:'人を助けたり火を消したときの「ありがとう」コインが1.5倍！'},
+  bousai:{name:'防災倉庫',x:-380,y:-60,cost:3000,need:()=>S.lv.yagura>=4&&(S.tyN||0)>=1,fx:'台風が来たら、倉庫から土嚢がすぐ届く！'},
+  museum:{name:'消防記念館',x:400,y:-210,cost:5000,need:()=>S.lv.yagura>=5,fx:'功績が1.5倍たまる！ 階級が上がりやすくなる'}};
+const DLV_COST=[500,1500,4000];
+UP.forge={name:'装備を鍛える',icon:'anvil',fx:()=>''};
+PADS.push({id:'forge',x:-345,y:-10,unlock:()=>S.lv.yagura>=3&&Object.values(S.eq).some(v=>v>0)});
+for(const k in FAC){const f=FAC[k];UP[k]={name:f.name,icon:'fac_'+k,cost:[f.cost],fx:()=>f.fx};PADS.push({id:k,x:f.x,y:f.y,unlock:f.need});BLD.push({id:'fac',k,x:f.x,y:f.y,w:0,h:-240,ht:0})}
+for(const d of DIST){const id='dlv_'+d.id;UP[id]={get name(){return distName(d.id).replace('分団','')+'の詰所'},icon:'tsume'};PADS.push({id,x:d.x-95,y:d.y+150,unlock:()=>!!S.lv[d.id]&&((S.dcrew||{})[d.id]||0)>=1})}
+PADS.forEach(p=>PADMAP[p.id]=p);
+const wLv=w=>w.home?((S.dlv||{})[w.home]||0):0;
+
+padCost=(o=>function(id){
+  if(id==='forge'){const k=forgeSlot();return k?Math.round(250*Math.pow(1.4,plusTot())):null}
+  if(id.startsWith('dlv_')){const l=(S.dlv||{})[id.slice(4)]||0;return l<3?DLV_COST[l]:null}
+  if(id.startsWith('dc_')){const k=id.slice(3),n=(S.dcrew||{})[k]||0;return n<3+((S.dlv||{})[k]||0)?Math.round(60*Math.pow(1.6,n)):null}
+  return o(id)})(padCost);
+padLvText=(o=>function(id){
+  if(id==='forge'){const k=forgeSlot();return k?`${EQ[k].name}+${eqp(k)+1}`:''}
+  if(id.startsWith('dlv_'))return '強化'+(((S.dlv||{})[id.slice(4)]||0)+1);
+  if(FAC[id])return '';return o(id)})(padLvText);
+levelUp=(o=>function(id){
+  if(id==='forge'){S.paid[id]=0;const p=PADMAP[id];burst(p.x,p.y,'#f3b648',40);snd('buy');buzz([30,30,60]);shake=6;const k=forgeSlot();if(!k)return;S.eqp[k]=eqp(k)+1;if(k==='helmet')P.hp=maxHp();
+    pop(`${RARE[S.eq[k]]}の${EQ[k].name}+${S.eqp[k]}！`,k==='helmet'?`体力 ${maxHp()}`:'効果が20%アップした');return}
+  if(id.startsWith('dlv_')){S.paid[id]=0;const p=PADMAP[id];burst(p.x,p.y,'#f3b648',34);snd('buy');buzz(40);shake=6;const k=id.slice(4);S.dlv[k]=(S.dlv[k]||0)+1;
+    pop(`${UP[id].name} 強化${S.dlv[k]}！`,`この分団の団員が速く働き、売上が${1+.5*S.dlv[k]}倍に。団員も${3+S.dlv[k]}人まで増やせる`);return}
+  if(FAC[id]){S.paid[id]=0;const p=PADMAP[id];burst(p.x,p.y,'#f3b648',50);snd('buy');buzz([40,40,80]);shake=8;S.lv[id]=1;pop(`${FAC[id].name} 完成！`,FAC[id].fx);return}
+  return o(id)})(levelUp);
+genWorld=(o=>function(){o();const near=(x,y)=>PADS.some(p=>(p.id==='forge'||FAC[p.id]||p.id.startsWith('dlv_'))&&dist(x,y,p.x,p.y)<62);trees=trees.filter(t=>!near(t.x,t.y));houses=houses.filter(h=>!near(h.x,h.y))})(genWorld);
+addMerit=(o=>function(n){return o(n&&S.lv.museum?Math.ceil(n*1.5):n)})(addMerit);
+
+/* --- フック --- */
+function stAdd(k,v){S.st[k]=(S.st[k]||0)+(v||1)}
+extinguish=(o=>function(h){o(h);stAdd('ext');dmAdd('ext');if(S.lv.park)drop('coin',h.x,h.y,Math.ceil((3+2*yl())*.5))})(extinguish);
+killMon=(o=>function(m){const b=m.boss;o(m);stAdd('kill');if(b)stAdd('boss');dmAdd('kill')})(killMon);
+rescuePerson=(o=>function(h){o(h);stAdd('rescue');dmAdd('rescue');if(S.lv.park)drop('coin',h.x,h.y,Math.ceil((5+2*yl())*.5))})(rescuePerson);
+
+/* --- 今日の任務 --- */
+const DM=[{k:'ext',n:()=>3,t:n=>`火事を${n}件消す`},{k:'kill',n:()=>5+yl(),t:n=>`ヒノコを${n}匹たおす`},{k:'chop',n:()=>10+2*yl(),t:n=>`木を${n}本切る`},
+  {k:'sell',n:()=>100*yl(),t:n=>`木や石を売って${n}コインかせぐ`},{k:'rescue',n:()=>2,t:n=>`人を${n}人助ける`,need:()=>(S.rank||0)>=1},
+  {k:'emerg',n:()=>1,t:()=>'救急出動で救命に成功する',need:()=>!!S.f.emerg},{k:'soho',n:()=>1,t:()=>'操法大会に出る',need:()=>(S.rank||0)>=1},
+  {k:'evac',n:()=>3,t:n=>`台風のとき${n}人を避難所へ`,need:()=>(S.tyN||0)>=1}];
+const today=()=>{const d=new Date();return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`};
+function ensureDaily(){const td=today();if(S.daily&&S.daily.d===td)return S.daily;
+  let h=0;for(const c of td)h=(h*31+c.charCodeAt(0))|0;const r=mulberry(h);const pool=DM.filter(m=>!m.need||m.need());const l=[];
+  while(l.length<3&&pool.length){const m=pool.splice(Math.floor(r()*pool.length),1)[0];const n=m.n();l.push({k:m.k,n,c:0,t:m.t(n)})}
+  S.daily={d:td,l,all:false};return S.daily}
+function dmAdd(k,v){if(!S||!S.started)return;const D=ensureDaily();for(const m of D.l){if(m.k!==k||m.done)continue;m.c=Math.min(m.n,m.c+(v||1));
+  if(m.c>=m.n){m.done=true;const c=30*yl();drop('coin',P.x,P.y,c);toast(`今日の任務 達成！「${m.t}」 +${c}コイン`,'ok');snd('new')}}
+  if(!D.all&&D.l.every(m=>m.done)){D.all=true;stAdd('dailyall');setTimeout(()=>{pop('今日の任務 ぜんぶ達成！','ごほうびの装備箱をもらった');giveBox('今日の任務 ぜんぶ達成')},900)}}
+function dailyHtml(){const D=ensureDaily();return `<h3 class="sec">今日の任務 <small>毎日かわるよ</small></h3><div class="dm">${D.l.map(m=>`<div class="dmi ${m.done?'done':''}"><span>${m.done?'✅':'⬜'} ${m.t}</span><div class="prog"><i style="width:${m.c/m.n*100}%"></i></div><small>${m.c}/${m.n}</small></div>`).join('')}</div><p class="note">1つ達成で${30*yl()}コイン、3つぜんぶで装備箱</p>`}
+
+/* --- バッジ --- */
+const BADGES=[
+  ['ext1','🔥','はじめての消火',()=>S.st.ext>=1],['ext50','🧯','消火のプロ（50件）',()=>S.st.ext>=50],['kill30','💥','ヒノコハンター（30匹）',()=>S.st.kill>=30],
+  ['boss','👹','大ヒノコ討伐',()=>S.st.boss>=1],['resc10','🙌','人命救助（10人）',()=>S.st.rescue>=10],['emerg5','🚑','救命の達人（5回）',()=>(S.emN||0)>=5],
+  ['ty1','🌀','台風をのりきる',()=>(S.tyN||0)>=1],['typerf','🛡️','完璧な防災',()=>S.st.typerf>=1],['evac10','🏫','避難誘導（10人）',()=>S.st.evac>=10],
+  ['truck','🚒','ポンプ車配備',()=>S.lv.truck>=1],['ladder','🪜','はしご車配備',()=>!!S.lv.ladder],['hr','🏢','高層ビル火災 鎮火',()=>S.st.hr>=1],
+  ['gold','🥇','操法大会 金メダル',()=>S.st.sohog>=1],['dist1','🗾','分団を結成',()=>openD().length>=1],['dist4','🏯','吹田をまもる（4分団）',()=>openD().length>=4],
+  ['dancho','⭐','団長になる',()=>(S.rank||0)>=6],['daily','📅','今日の任務 完全達成',()=>S.st.dailyall>=1],['forge','⚒️','装備を鍛える（合計+5）',()=>plusTot()>=5],
+  ['fac','🏞️','町づくり（施設3つ）',()=>Object.keys(FAC).every(k=>S.lv[k])],['rich','💰','コイン1万枚かせぐ',()=>S.earned>=10000]];
+function checkBadges(silent){let n=0;for(const [id,ic,nm,f] of BADGES){if(S.badges.includes(id))continue;let ok=false;try{ok=f()}catch(e){}if(!ok)continue;S.badges.push(id);n++;
+  if(!silent){toast(`${ic} バッジ獲得「${nm}」`,'ok');snd('new');addMerit(3)}}return n}
+function badgeHtml(){return `<h3 class="sec">バッジ <small>${S.badges.length}/${BADGES.length}</small></h3><div class="bdg">${BADGES.map(([id,ic,nm])=>{const g=S.badges.includes(id);return `<div class="bi ${g?'on':''}"><span>${g?ic:'🔒'}</span><small>${nm}</small></div>`}).join('')}</div>`}
+let bdgT=0;
+update=(o=>function(dt){o(dt);bdgT+=dt;if(bdgT>1){bdgT=0;checkBadges(false)}})(update);
+
+/* --- 描画 --- */
+icon=(o=>function(k,x,y,s){
+  if(k!=='anvil'&&k!=='tsume'&&!k.startsWith('fac_'))return o(k,x,y,s);
+  cx.save();cx.translate(x,y);cx.scale(s,s);
+  if(k==='anvil'){cx.fillStyle='#4a5468';cx.fillRect(-11,-2,22,6);cx.fillRect(-5,4,10,6);cx.fillRect(-9,10,18,3);cx.beginPath();cx.moveTo(-11,-2);cx.lineTo(-17,-2);cx.lineTo(-11,3);cx.fill();cx.fillStyle='#f3b648';cx.beginPath();cx.arc(6,-8,3,0,7);cx.fill();cx.fillStyle='#e5432a';cx.beginPath();cx.arc(10,-12,2,0,7);cx.fill()}
+  else if(k==='tsume'){cx.fillStyle='#f3ede2';cx.fillRect(-10,-3,20,13);cx.fillStyle='#e5432a';cx.beginPath();cx.moveTo(-13,-3);cx.lineTo(0,-13);cx.lineTo(13,-3);cx.closePath();cx.fill();cx.fillStyle='#7d5b3f';cx.fillRect(-3,3,6,7)}
+  else if(k==='fac_park'){cx.fillStyle='#5aa469';cx.beginPath();cx.arc(-4,-5,8,0,7);cx.fill();cx.fillStyle='#7d5b3f';cx.fillRect(-5,2,3,8);cx.fillStyle='#b0715f';cx.fillRect(3,4,11,3);cx.fillRect(4,7,2,3);cx.fillRect(11,7,2,3)}
+  else if(k==='fac_bousai'){cx.fillStyle='#d7dee6';cx.fillRect(-11,-4,22,14);cx.fillStyle='#e5432a';cx.fillRect(-12,-8,24,5);cx.fillStyle='#c8a36a';for(let i=0;i<3;i++)cx.fillRect(-8+i*6,2,5,7)}
+  else if(k==='fac_museum'){cx.fillStyle='#eef1f5';cx.fillRect(-12,-2,24,12);cx.fillStyle='#c8901f';cx.beginPath();cx.moveTo(-14,-2);cx.lineTo(0,-12);cx.lineTo(14,-2);cx.closePath();cx.fill();cx.fillStyle='#9aa3b2';for(let i=0;i<4;i++)cx.fillRect(-9+i*6,0,2.5,10)}
+  cx.restore()})(icon);
+drawBld=(o=>function(b,t){if(b.id!=='fac')return o(b,t);if(!S.lv[b.k])return;const x=b.x,y=b.y;
+  if(b.k==='park'){cx.fillStyle='#a8d39a';cx.beginPath();cx.ellipse(x,y,70,40,0,0,7);cx.fill();cx.fillStyle='#d8c9a6';cx.beginPath();cx.ellipse(x+10,y+6,26,12,0,0,7);cx.fill();
+    for(const [dx,dy] of [[-44,-14],[40,-18],[-30,18]]){shadow(x+dx+3,y+dy+4,12,4);cx.fillStyle='#7d5b3f';cx.fillRect(x+dx-2,y+dy-10,4,12);cx.fillStyle='#4f9a5c';cx.beginPath();cx.arc(x+dx,y+dy-16,12,0,7);cx.fill()}
+    cx.fillStyle='#e5432a';cx.fillRect(x+4,y-24,3,22);cx.fillStyle='#3d93db';cx.beginPath();cx.moveTo(x+7,y-24);cx.lineTo(x+26,y-4);cx.lineTo(x+20,y-2);cx.lineTo(x+7,y-14);cx.fill();
+    label('公園',x,y-48,13,'#fff',null,'#2f7a40')}
+  else if(b.k==='bousai'){box(x,y-16,78,38,30,'#d7dee6','#3c5486');cx.fillStyle='#e5432a';cx.fillRect(x-39,y+3-30,78,6);cx.fillStyle='#c8a36a';for(let i=0;i<4;i++)cx.fillRect(x-30+i*16,y+8,13,8);label('防災倉庫',x,y-60,13,'#fff',null,'#3c5486')}
+  else if(b.k==='museum'){box(x,y-18,92,40,36,'#f4f1ea','#8a6a2a');cx.fillStyle='#d8d2c4';for(let i=0;i<5;i++)cx.fillRect(x-40+i*19,y+2-36,5,36);cx.fillStyle='#22355c';cx.fillRect(x-8,y-12,16,14);label('消防記念館',x,y-70,13,'#fff',null,'#8a6a2a')}
+})(drawBld);
+
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
 let riverW=0;
@@ -928,7 +1023,7 @@ function update(dt){
   // 木を切る
   if(!P.ride){let tr=null;for(const t of trees){if(t.st==='up'&&!t.fire&&active(t)&&dist(P.x,P.y,t.x,t.y+4)<44){tr=t;break}}
     if(tr&&carry()<cap()){P.chopT+=dt;P.chopping=tr;if(P.chopT>=chopInt()){P.chopT=0;tr.hp--;tr.shake=.15;chips(tr.x,tr.y-16);snd('chop');
-      if(tr.hp<=0){tr.st='stump';tr.t=20;drop('wood',tr.x,tr.y-6,woodPer());S.f.chopped=true;shake=2}}}
+      if(tr.hp<=0){tr.st='stump';tr.t=20;drop('wood',tr.x,tr.y-6,woodPer());S.f.chopped=true;dmAdd('chop');shake=2}}}
     else{P.chopping=null;if(tr&&carry()>=cap()){P.full+=dt;if(P.full>1.2){P.full=0;float(P.x,P.y-60,'いっぱい！','#e5432a',14)}}}}
   for(const t of trees){t.shake=Math.max(0,t.shake-dt);if(t.st==='stump'){t.t-=dt;if(t.t<=0&&dist(P.x,P.y,t.x,t.y)>60){t.st='up';t.hp=3}}}
 
@@ -948,7 +1043,7 @@ function update(dt){
   // 売る
   const sp=[PADMAP.sell,...openD().map(d=>d.sell)].find(q=>dist(P.x,P.y,q.x,q.y)<34)||PADMAP.sell;sellT+=dt;
   if(sellT>.045){sellT=0;if(dist(P.x,P.y,sp.x,sp.y)<34&&carry()>0){
-    const k=S.stone>0?'stone':'wood';S[k]--;const v=(k==='stone'?3:1)*MULT[S.lv.price];S.frac+=v;const w=Math.floor(S.frac);S.frac-=w;S.coins+=w;S.earned+=w;
+    const k=S.stone>0?'stone':'wood';S[k]--;const v=(k==='stone'?3:1)*MULT[S.lv.price];S.frac+=v;const w=Math.floor(S.frac);S.frac-=w;S.coins+=w;S.earned+=w;if(w)dmAdd('sell',w);
     fly(k,P.x,P.y-34,sp.x,sp.y-60);if(w)float(sp.x+(Math.random()-.5)*30,sp.y-40,'+'+w,'#f3b648',15);S.f.sold=true;snd('coin');bump('pCoin')}}
 
   // 団員のコイン
@@ -1286,7 +1381,7 @@ let hudKey='';
 function hud(){
   const tn=townName(),te=document.getElementById('hTown');if(te.textContent!==tn)te.textContent=tn;
   const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand,maxHp(),S.rank,S.merit].join(',');if(k!==hudKey){hudKey=k;
-    document.getElementById('hCoin').textContent=S.coins;
+    document.getElementById('hCoin').textContent=S.coins>=10000?(Math.floor(S.coins/1000)/10)+'万':S.coins;
     document.getElementById('hRank').textContent=RANKS[S.rank];document.getElementById('hRankBar').style.width=(rankProg()*100)+'%';
     document.getElementById('hBag').textContent=S.sand>0?`${S.sand}/${cap()}`:`${carry()}/${cap()}`;document.getElementById('pBag').classList.toggle('sand',S.sand>0);
     document.getElementById('pBag').classList.toggle('full',carry()>=cap());
@@ -1320,9 +1415,9 @@ const LOOP=`<ul class="loop">
 </ul>`;
 function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>はじめに所属する分団を選んでね</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
-function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
+function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}${eqp(k)?'+'+eqp(k):''}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
 function rankHtml(){const nx=S.rank<6?`次の「${RANKS[S.rank+1]}」まで 功績あと${RANK_REQ[S.rank+1]-S.merit}`:'最高の階級！';return `<p class="lead">階級：${RANKS[S.rank]}（功績 ${S.merit}）</p><div class="prog"><i style="width:${rankProg()*100}%"></i></div><p class="note">${nx}<br>火を消す・ヒノコを倒す・人を助ける・台風から町を守ると功績がたまる</p>`}
-function menu(){modal(`<h2>メニュー</h2><button class="btn sub" data-act="pickhome">所属分団：${homeName()}（変える）</button>${rankHtml()}${eqHtml()}${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
+function menu(){modal(`<h2>メニュー</h2><button class="btn sub" data-act="pickhome">所属分団：${homeName()}（変える）</button>${rankHtml()}${dailyHtml()}${badgeHtml()}<h3 class="sec">装備</h3>${eqHtml()}<details class="how"><summary>遊び方</summary>${LOOP}</details><button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;audio();
   if(a==='start'){S.started=true;save();closeModal();if(!S.homeSet)pickHome(true)}
   else if(a==='home')setHome(b.dataset.v);
@@ -1336,13 +1431,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
   else if(a==='qhint')quizHint();
   else if(a==='qdone')quizDone();
   else if(a==='savequit'){const ok=save();modal(ok?`<h2>セーブしました</h2><p class="lead">このまま閉じてOK。次に開くと、つづきから遊べます。</p><p class="note">同じスマホ・同じブラウザで開いてね</p><button class="btn" data-act="close">ゲームにもどる</button>`:`<h2>セーブできません</h2><p>このブラウザではセーブが使えない設定になっています。Safariで開くとセーブできます。</p><button class="btn" data-act="close">ゲームにもどる</button>`)}
-  else if(a==='reset'){if(b.dataset.arm){const uz=S.uz,mu=S.muted;S=fresh();S.uz=uz;S.muted=mu;S.started=true;resetWorld();save();closeModal();pop('スタート！','木に近づいてみよう')}else{b.dataset.arm='1';b.textContent='もう一度押すとリセット'}}});
+  else if(a==='reset'){if(b.dataset.arm){const uz=S.uz,mu=S.muted,hm=S.home,hs=S.homeSet;S=fresh();S.uz=uz;S.muted=mu;S.home=hm;S.homeSet=hs;S.started=true;resetWorld();save();closeModal();pop('スタート！','木に近づいてみよう')}else{b.dataset.arm='1';b.textContent='もう一度押すとリセット'}}});
 document.getElementById('menuBtn').addEventListener('click',()=>{audio();menu()});
 
 /* ===================== ループ ===================== */
 let last=performance.now();
 function resetWorld(){genWorld();ty=null;evac=[];logs=[];em=null;emT=40;eq=null;hr=null;hrT=100;ff=false;ffT=80;eqT=110;sh=null;for(const k of VEHS){VEH[k].x=PADMAP[k].x;VEH[k].y=PADMAP[k].y}zones=[];for(const g of segs)g.sacks=0;mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=maxHp();P.ride=null;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
-  for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);for(const d of DIST){const n=(S.dcrew||{})[d.id]||0;for(let i=0;i<n;i++)addWorker(d.x+i*14,d.y+150)}rain=null;rainT=120;busFx=null;moved=false}
+  for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);for(const d of DIST){const n=(S.dcrew||{})[d.id]||0;for(let i=0;i<n;i++)addWorker(d.x+(i%4)*14,d.y+150,d.id)}rain=null;rainT=120;busFx=null;moved=false}
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
   if(!paused&&!document.hidden)update(dt);
@@ -1352,8 +1447,8 @@ function loop(t){
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
-  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(!S.home)S.home='吹三';if(S.homeSet==null)S.homeSet=S.earned>0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
-  resize();addEventListener('resize',resize);resetWorld();
+  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(!S.home)S.home='吹三';if(S.homeSet==null)S.homeSet=S.earned>0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;if(!S.eqp)S.eqp={};if(!S.dlv)S.dlv={};if(!S.st)S.st={};if(!S.badges)S.badges=[];for(const k of ['park','bousai','museum'])if(S.lv[k]==null)S.lv[k]=0;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
+  resize();addEventListener('resize',resize);resetWorld();checkBadges(true);
   if(!S.started)intro();else if(S.earned>0)cont();
   setInterval(save,3000);addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save();last=performance.now()});
   requestAnimationFrame(t=>{last=t;loop(t)});
