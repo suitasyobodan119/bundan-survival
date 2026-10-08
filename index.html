@@ -103,6 +103,11 @@ button,a,.qbtn{touch-action:manipulation}
 .hbtn{border:2px solid #dbe3ec;background:#f7f9fc;border-radius:12px;padding:12px 4px;font:inherit;font-weight:700;font-size:14px;color:var(--ink);cursor:pointer}
 .hbtn.on{border-color:var(--shu);background:#fde3dd}
 #mini{position:fixed;right:10px;top:calc(env(safe-area-inset-top,0px) + 152px);width:104px;height:104px;border-radius:16px;background:rgba(52,68,98,.55);box-shadow:0 2px 10px rgba(27,39,64,.25);z-index:5;cursor:pointer;touch-action:manipulation}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row2 .btn{margin-top:8px}
+#taBar{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 152px);z-index:6;background:rgba(27,39,64,.88);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:8px 12px;pointer-events:none;font-variant-numeric:tabular-nums}
+#taBar.low{background:#e5432a;animation:tapulse 1s infinite}@keyframes tapulse{50%{transform:scale(1.06)}}
+label.nm{display:block;margin:12px 0 4px;font-size:13px;font-weight:700;text-align:left}label.nm input{display:block;width:100%;box-sizing:border-box;margin-top:6px;font:inherit;font-size:18px;padding:10px 12px;border:2px solid #dbe3ec;border-radius:12px}
+.btn.mini{font-size:12px;padding:8px;opacity:.7}.rk td small{display:block;font-size:10px;color:var(--mute)}
 #zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
 #zoom button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel);font-family:var(--display);font-size:22px;line-height:1;color:var(--ink);box-shadow:0 2px 8px rgba(27,39,64,.2);cursor:pointer}
 #zoom button:disabled{opacity:.4;cursor:default}
@@ -150,6 +155,7 @@ button,a,.qbtn{touch-action:manipulation}
   <div id="goal"><span class="tag" id="goalTag">目標</span><p id="goalText"></p></div>
 </div>
 <canvas id="mini" width="224" height="224" aria-label="ミニマップ。タップした場所に矢印を出す"></canvas>
+<div id="taBar" hidden></div>
 <div id="zoom"><button id="zIn" aria-label="ズームイン">＋</button><button id="zOut" aria-label="ズームアウト">－</button></div>
 <button id="ride" hidden>ポンプ車に乗る</button>
 <div id="hint">指でなぞると歩くよ</div>
@@ -223,7 +229,7 @@ const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
 let S;
 function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0,d_s:0,d_n:0,bus:0,park:0,bousai:0,museum:0},eqp:{},dlv:{},st:{},badges:[],dcrew:{},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.v===3?s:null}catch(e){return null}}
-function save(){if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
+function save(){if(S&&S.ta)return true;if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 
 const radius=()=>RAD[S.lv.yagura];
 const cap=()=>CAPS[S.lv.bag];
@@ -974,6 +980,100 @@ drawBld=(o=>function(b,t){if(b.id!=='fac')return o(b,t);if(!S.lv[b.k])return;con
   else if(b.k==='museum'){box(x,y-18,92,40,36,'#f4f1ea','#8a6a2a');cx.fillStyle='#d8d2c4';for(let i=0;i<5;i++)cx.fillRect(x-40+i*19,y+2-36,5,36);cx.fillStyle='#22355c';cx.fillRect(x-8,y-12,16,14);label('消防記念館',x,y-70,13,'#fff',null,'#8a6a2a')}
 })(drawBld);
 
+/* ===================== 昼と夜・BGM・フェスタ3分チャレンジ ===================== */
+const CYCLE=240;
+function nightAmt(){const p=((S.clock||0)%CYCLE+CYCLE)%CYCLE;if(p<150)return 0;if(p<165)return (p-150)/15;if(p<225)return 1;return 1-(p-225)/15}
+const isNight=()=>nightAmt()>.5;
+let wasNight=false,nFireT=20;
+function updDay(dt){
+  if(!S.f.mon&&!S.ta)return;
+  S.clock=(S.clock||0)+dt;const n=isNight();
+  if(n&&!wasNight){toast('🌙 夜になった！ ヒノコが増えるぞ。そのかわり炎の石が多めに出る','warn');snd('boss');nFireT=12}
+  if(!n&&wasNight){toast('☀️ 朝になった！ 夜をのりきった','ok');addMerit(3);snd('new')}
+  wasNight=n;
+  if(n&&!ty){nFireT-=dt;if(nFireT<=0){nFireT=26+Math.random()*10;const burning=houses.filter(h=>h.st==='fire').length;
+    if(burning<3){const c=houses.filter(h=>h.st==='ok'&&active(h)&&!h.person&&dist(h.x,h.y,P.x,P.y)>160&&Math.hypot(h.x,h.y)<radius()-40);if(c.length){const h=c[Math.floor(Math.random()*c.length)];ignite(h);toast('🔥 夜の火事！ 赤い矢印の方へ急げ','warn')}}}}
+}
+killMon=(o=>function(m){o(m);if(isNight())drop('stone',m.x,m.y,m.boss?4:1)})(killMon);
+drawHouse=(o=>function(h,t){o(h,t);const d=nightAmt();if(d<=0||h.st!=='ok')return;const k=Math.abs(Math.round(h.x*7+h.y*13))%5;if(k===0)return;
+  cx.fillStyle=`rgba(255,214,120,${.95*d})`;if(k!==1)cx.fillRect(h.x-h.w/4-4,h.y+h.h/2-h.ht+6,8,8);if(k!==2)cx.fillRect(h.x+h.w/4-4,h.y+h.h/2-h.ht+6,8,8)})(drawHouse);
+let nC=null,nX=null;
+function drawNight(t){const d=nightAmt();if(d<=0)return;
+  if(!nC){nC=document.createElement('canvas');nX=nC.getContext('2d')}
+  if(nC.width!==cv.width||nC.height!==cv.height){nC.width=cv.width;nC.height=cv.height}
+  const s=sc();nX.setTransform(1,0,0,1,0,0);nX.globalCompositeOperation='source-over';nX.clearRect(0,0,nC.width,nC.height);nX.fillStyle=`rgba(14,22,58,${.58*d})`;nX.fillRect(0,0,nC.width,nC.height);
+  nX.setTransform(DPR*s,0,0,DPR*s,DPR*(W/2-cam.x*s),DPR*(H*.58-cam.y*s));nX.globalCompositeOperation='destination-out';
+  const L=(x,y,r,a)=>{const g=nX.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(0,0,0,${a||1})`);g.addColorStop(1,'rgba(0,0,0,0)');nX.fillStyle=g;nX.fillRect(x-r,y-r,r*2,r*2)};
+  const vw=W/s,vh=H/s,near=(x,y,m)=>Math.abs(x-cam.x)<vw/2+m&&Math.abs(y-cam.y)<vh+m;
+  L(P.x,P.y-16,135);
+  if(S.lv.truck)L(T.x+T.face*40,T.y-10,120,.9);
+  for(const k of VEHS)if(S.lv[k]&&near(VEH[k].x,VEH[k].y,120))L(VEH[k].x,VEH[k].y-10,80,.7);
+  const fl=1+.08*Math.sin(t/90);
+  for(const h of houses){if(!near(h.x,h.y,140))continue;if(h.st==='fire')L(h.x,h.y-h.ht,120*fl,1);else if(h.st==='ok'){const k=Math.abs(Math.round(h.x*7+h.y*13))%5;if(k)L(h.x,h.y+h.h/2-h.ht+10,22,.8)}}
+  for(const tr of trees)if(tr.fire&&near(tr.x,tr.y,120))L(tr.x,tr.y-20,95*fl,1);
+  for(const m of mons)if(near(m.x,m.y,80))L(m.x,m.y-10,m.boss?120:55,.85);
+  L(0,-114-58-16*yl(),110,.9);
+  for(const p of PADS){if(p.id==='sell'||(unlocked(p)&&padCost(p.id)!=null&&!(p.lock&&p.lock())))if(near(p.x,p.y,80))L(p.x,p.y,48,.6)}
+  for(const dd of drops)if(near(dd.x,dd.y,30))L(dd.x,dd.y,22,.6);
+  nX.globalCompositeOperation='source-over';
+  cx.save();cx.setTransform(1,0,0,1,0,0);cx.drawImage(nC,0,0);cx.restore();
+}
+
+/* --- BGM --- */
+const SONGS={
+  day:{bpm:132,mel:[76,79,81,79,76,74,72,0, 76,81,84,81,79,76,81,0, 81,84,86,84,81,79,81,0, 79,81,79,76,74,0,79,0],bass:[48,48,45,45,41,41,43,43],wave:'triangle',g:.045},
+  night:{bpm:92,mel:[76,0,72,0,74,0,69,0, 76,0,79,0,77,0,76,0, 72,0,74,0,76,0,72,0, 71,0,72,0,69,0,0,0],bass:[45,45,41,41,48,48,40,40],wave:'sine',g:.05},
+  alert:{bpm:156,mel:[69,72,76,72,69,72,76,79, 77,76,72,69,71,72,74,76, 69,72,76,72,69,72,76,81, 79,77,76,74,72,71,69,0],bass:[45,45,45,45,41,41,43,43],wave:'square',g:.022}};
+let bgmG=null,bgmNext=0,bgmStep=0,bgmMode='day',bgmChk=0;
+const mf=n=>440*Math.pow(2,(n-69)/12);
+function bnote(f,t,d,type,g){const o=AC.createOscillator(),a=AC.createGain();o.type=type;o.frequency.setValueAtTime(f,t);a.gain.setValueAtTime(.0001,t);a.gain.exponentialRampToValueAtTime(g,t+.015);a.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(a).connect(bgmG);o.start(t);o.stop(t+d+.03)}
+function alarmOn(){return !!(ty||em||hr||ff||eq||rain||houses.some(h=>h.st==='fire'&&active(h)))}
+function bgmTick(){if(!AC)return;if(!bgmG){bgmG=AC.createGain();bgmG.gain.value=0;bgmG.connect(AC.destination)}
+  const on=!S.muted&&!S.bgmOff&&!document.hidden&&S.started;bgmG.gain.setTargetAtTime(on?1:0,AC.currentTime,.15);
+  if(!on){bgmNext=0;return}
+  const now=AC.currentTime;if(bgmNext<now-.2){bgmNext=now+.06}
+  if(bgmStep%8===0&&bgmChk!==bgmStep){bgmChk=bgmStep;const m=alarmOn()?'alert':isNight()?'night':'day';if(m!==bgmMode){bgmMode=m;bgmStep=0;bgmChk=0}}
+  const sg=SONGS[bgmMode],st=60/sg.bpm/2;
+  while(bgmNext<now+.3){const i=bgmStep%sg.mel.length,n=sg.mel[i];
+    if(n)bnote(mf(n),bgmNext,st*1.6,sg.wave,sg.g);
+    if(i%2===0)bnote(mf(sg.bass[(i>>2)%sg.bass.length]+(i%4?7:0)),bgmNext,st*1.8,'sine',.07);
+    if(bgmMode!=='night'&&i%2===1)bnote(2400,bgmNext,.03,'square',.006);
+    bgmNext+=st;bgmStep++}
+}
+document.addEventListener('pointerdown',()=>{if(AC&&AC.state==='suspended')AC.resume()},{passive:true});
+
+/* --- フェスタ 3分チャレンジ --- */
+const TA_KEY='bundan-ta-rank',TA_LEN=180;
+let TA_MAIN=null,taT=0,taPick=false,taLastSec=99,taScore=0,taSaved=false;
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function taRank(){try{return JSON.parse(localStorage.getItem(TA_KEY))||[]}catch(e){return[]}}
+function taRankHtml(hi){const r=taRank().slice(0,10);if(!r.length)return '<p class="note">まだ記録がないよ。1位をねらおう！</p>';
+  return `<table class="rk">${r.map((x,i)=>`<tr class="${hi!=null&&i===hi?'me':''}"><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b||'')}</small></td><td>${x.s}枚</td></tr>`).join('')}</table>`}
+function taIntro(){modal(`<h2>3分チャレンジ</h2><p class="lead">3分間で、コインを何枚かせげるか！</p><ul class="loop"><li><span class="n">1</span><span>木を切って、買取所で売ろう</span></li><li><span class="n">2</span><span>ヒノコを倒して火事を消すと、コインがもらえる</span></li><li><span class="n">3</span><span>斧やホースを買うと、もっとかせげる！ 最後の1分は夜になるぞ</span></li></ul><h3 class="sec">ランキング</h3>${taRankHtml()}<button class="btn" data-act="tago">スタート！</button><button class="btn sub" data-act="tahome">所属分団：${homeName()}（変える）</button><button class="btn sub" data-act="taexit">ふつうに遊ぶ</button>`)}
+function taStart(){if(!S.ta){TA_MAIN=S;save()}const B=TA_MAIN;S=fresh();Object.assign(S,{ta:true,started:true,home:B.home||'吹三',homeSet:true,muted:B.muted,bgmOff:B.bgmOff,uz:B.uz,tyT:99999,clock:45,seen:['sell']});
+  taT=TA_LEN;taLastSec=99;taSaved=false;resetWorld();emT=70;closeModal();document.getElementById('taBar').hidden=false;pop('スタート！','3分でコインをたくさんかせごう');snd('buy')}
+function taTick(dt){if(!S.ta||taT<=0)return;taT-=dt;const sec=Math.ceil(taT);
+  if(sec!==taLastSec){taLastSec=sec;const el=document.getElementById('taBar');el.textContent=`⏱ ${Math.floor(Math.max(0,sec)/60)}:${String(Math.max(0,sec)%60).padStart(2,'0')}　💰 ${S.earned}`;el.classList.toggle('low',sec<=30);if(sec<=10&&sec>0)snd('tick')}
+  if(taT<=0)taEnd()}
+function taEnd(){taScore=S.earned;const r=taRank(),place=r.filter(x=>x.s>taScore).length+1;snd('buy');
+  modal(`<h2>タイムアップ！</h2><div class="medal r${place<=3?4-place:0}">${taScore}枚</div><p class="lead">${place<=10?`ランキング ${place}位に入るよ！`:'よくがんばった！'}</p><p class="note">消した火事 ${S.st.ext||0}件・倒したヒノコ ${S.st.kill||0}匹・斧 Lv${S.lv.axe}・ホース Lv${S.lv.hose}</p><label class="nm">なまえ（8文字まで）<input id="taName" maxlength="8" placeholder="ニックネーム" autocomplete="off"></label><button class="btn" data-act="tasave">ランキングに登録</button><button class="btn sub" data-act="tago">登録しないでもう一回</button>`)}
+function taSave(){if(taSaved)return;const n=(document.getElementById('taName').value||'').trim().slice(0,8)||'ななし';taSaved=true;
+  const r=taRank();const e={n,b:homeName(),s:taScore,d:Date.now()};r.push(e);r.sort((a,b)=>b.s-a.s||a.d-b.d);const top=r.slice(0,50);try{localStorage.setItem(TA_KEY,JSON.stringify(top))}catch(x){}
+  const i=top.indexOf(e);modal(`<h2>ランキング</h2>${taRankHtml(i<10?i:null)}${i>=10?`<p class="note">${esc(n)}：${i+1}位（${taScore}枚）</p>`:''}<button class="btn" data-act="tanext">次の人へ</button><button class="btn sub" data-act="taexit">ふつうのモードにもどる</button><button class="btn sub mini" data-act="taclr">ランキングを消す（係の人用）</button>`)}
+function taExit(){document.getElementById('taBar').hidden=true;if(S.ta){S=TA_MAIN||fresh();TA_MAIN=null;resetWorld();hudKey=''}closeModal();if(!S.started)intro();else if(!S.homeSet)pickHome(true)}
+setHome=(o=>function(n){if(S.ta&&TA_MAIN)TA_MAIN.home=n;o(n);if(taPick){taPick=false;taIntro()}})(setHome);
+menu=(o=>function(){if(!S.ta)return o();modal(`<h2>3分チャレンジ中</h2><p class="lead">のこり ${Math.ceil(taT)}秒・コイン ${S.earned}枚</p><button class="btn" data-act="close">チャレンジにもどる</button><button class="btn sub" data-act="taexit">やめて、ふつうのモードにもどる</button>`)})(menu);
+dmAdd=(o=>function(k,v){if(S&&S.ta)return;o(k,v)})(dmAdd);
+checkBadges=(o=>function(s){if(S&&S.ta)return 0;return o(s)})(checkBadges);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='ta')taIntro();else if(a==='tago')taStart();else if(a==='tasave')taSave();else if(a==='tanext')taIntro();else if(a==='taexit')taExit();
+  else if(a==='tahome'){taPick=true;pickHome(false)}
+  else if(a==='bgm'){S.bgmOff=!S.bgmOff;save();b.textContent=`BGM：${S.bgmOff?'OFF':'ON'}`}
+  else if(a==='taclr'){if(b.dataset.arm){try{localStorage.removeItem(TA_KEY)}catch(x){}taIntro()}else{b.dataset.arm='1';b.textContent='もう一度押すと消えます'}}});
+
+update=(o=>function(dt){o(dt);updDay(dt);taTick(dt)})(update);
+hud=(o=>function(){o();bgmTick()})(hud);
+
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
 let riverW=0;
@@ -1073,7 +1173,7 @@ function update(dt){
 
   // ヒノコ
   if(!S.f.mon&&(S.lv.axe>=2||S.earned>=12)){S.f.mon=true;monT=0}
-  if(S.f.mon&&!ty){monT-=dt;if(monT<=0){monT=7+Math.random()*5;if(mons.filter(m=>!m.boss).length<1+yl())spawnMon()}}
+  if(S.f.mon&&!ty){monT-=dt;if(monT<=0){monT=(7+Math.random()*5)*(isNight()?.45:1);if(mons.filter(m=>!m.boss).length<1+yl()+(isNight()?2:0))spawnMon()}}
   if(yl()>=2&&!ty){bossT-=dt;if(bossT<=0){bossT=150;if(!mons.some(m=>m.boss)&&spawnMon(true)){snd('boss');buzz([80,60,80]);shake=8;pop('大ヒノコ 出現！','ポンプ車で一気に消そう')}}}
   for(const m of mons){if(m.dead)continue;m.t+=dt;m.hit=Math.max(0,m.hit-dt);
     const sp=m.boss?26:44,dp=dist(m.x,m.y,P.x,P.y);let tx,ty;
@@ -1349,6 +1449,7 @@ function draw(t){
   if(!P.ride)list.push({y:P.y,f:()=>{if(P.hurt>0&&Math.floor(t/80)%2)return;drawPerson(P.x,P.y,P.face,'#22355c',S.wood,S.stone,false,t,P.moving,!!P.chopping,S.sand)}});
   for(const d of drops)list.push({y:d.y,f:()=>drawDrop(d)});
   list.sort((a,b)=>a.y-b.y).forEach(o=>o.f());
+  drawNight(t);
   // 放水
   for(const src of [P,T,VEH.ladder]){const tg=src.spray;if(!tg)continue;const big=src===T,ox=src.x+src.face*(big?30:10),oy=src.y-(big?36:18);
     cx.strokeStyle=big?'rgba(61,147,219,.5)':'rgba(61,147,219,.35)';cx.lineWidth=big?6:3;cx.beginPath();cx.moveTo(ox,oy);cx.quadraticCurveTo((ox+tg.x)/2,Math.min(oy,tg.y)-50,tg.x,tg.y-(tg.boss?40:24));cx.stroke()}
@@ -1379,7 +1480,7 @@ function draw(t){
 /* ===================== HUD ===================== */
 let hudKey='';
 function hud(){
-  const tn=townName(),te=document.getElementById('hTown');if(te.textContent!==tn)te.textContent=tn;
+  const tn=townName()+(nightAmt()>.5?' 🌙':''),te=document.getElementById('hTown');if(te.textContent!==tn)te.textContent=tn;
   const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand,maxHp(),S.rank,S.merit].join(',');if(k!==hudKey){hudKey=k;
     document.getElementById('hCoin').textContent=S.coins>=10000?(Math.floor(S.coins/1000)/10)+'万':S.coins;
     document.getElementById('hRank').textContent=RANKS[S.rank];document.getElementById('hRankBar').style.width=(rankProg()*100)+'%';
@@ -1413,11 +1514,11 @@ const LOOP=`<ul class="loop">
 <li><span class="n">6</span><span>班長になると<b>分団対抗の操法大会</b>に出場できる。部長からは<b>新しい分団</b>を結成でき、<b>路線バス</b>で行き来できる</span></li>
 <li><span class="n">7</span><span><b>台風</b>が来る前に、川の堤防に<b>土嚢</b>を積んで町を守ろう</span></li>
 </ul>`;
-function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>はじめに所属する分団を選んでね</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
+function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>はじめに所属する分団を選んでね</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><button class="btn sub" data-act="ta">🏆 3分チャレンジ（フェスタ用）</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
 function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}${eqp(k)?'+'+eqp(k):''}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
 function rankHtml(){const nx=S.rank<6?`次の「${RANKS[S.rank+1]}」まで 功績あと${RANK_REQ[S.rank+1]-S.merit}`:'最高の階級！';return `<p class="lead">階級：${RANKS[S.rank]}（功績 ${S.merit}）</p><div class="prog"><i style="width:${rankProg()*100}%"></i></div><p class="note">${nx}<br>火を消す・ヒノコを倒す・人を助ける・台風から町を守ると功績がたまる</p>`}
-function menu(){modal(`<h2>メニュー</h2><button class="btn sub" data-act="pickhome">所属分団：${homeName()}（変える）</button>${rankHtml()}${dailyHtml()}${badgeHtml()}<h3 class="sec">装備</h3>${eqHtml()}<details class="how"><summary>遊び方</summary>${LOOP}</details><button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
+function menu(){modal(`<h2>メニュー</h2><button class="btn sub" data-act="pickhome">所属分団：${homeName()}（変える）</button>${rankHtml()}<div class="row2"><button class="btn sub" data-act="ta">🏆 3分チャレンジ</button><button class="btn sub" data-act="bgm">BGM：${S.bgmOff?'OFF':'ON'}</button></div>${dailyHtml()}${badgeHtml()}<h3 class="sec">装備</h3>${eqHtml()}<details class="how"><summary>遊び方</summary>${LOOP}</details><button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;audio();
   if(a==='start'){S.started=true;save();closeModal();if(!S.homeSet)pickHome(true)}
   else if(a==='home')setHome(b.dataset.v);
@@ -1447,9 +1548,9 @@ function loop(t){
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
-  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(!S.home)S.home='吹三';if(S.homeSet==null)S.homeSet=S.earned>0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;if(!S.eqp)S.eqp={};if(!S.dlv)S.dlv={};if(!S.st)S.st={};if(!S.badges)S.badges=[];for(const k of ['park','bousai','museum'])if(S.lv[k]==null)S.lv[k]=0;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
+  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(!S.home)S.home='吹三';if(S.homeSet==null)S.homeSet=S.earned>0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;if(!S.eqp)S.eqp={};if(S.clock==null)S.clock=0;if(!S.dlv)S.dlv={};if(!S.st)S.st={};if(!S.badges)S.badges=[];for(const k of ['park','bousai','museum'])if(S.lv[k]==null)S.lv[k]=0;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
   resize();addEventListener('resize',resize);resetWorld();checkBadges(true);
-  if(!S.started)intro();else if(S.earned>0)cont();
+  if(/[?&]festa/.test(location.search))taIntro();else if(!S.started)intro();else if(S.earned>0)cont();
   setInterval(save,3000);addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save();last=performance.now()});
   requestAnimationFrame(t=>{last=t;loop(t)});
 }
