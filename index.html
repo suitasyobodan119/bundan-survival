@@ -184,6 +184,10 @@ const UP={
   d_res:{name:'千里丘分団',icon:'town',cost:[1200],fx:()=>'家が多い分団。ときどき地震が起きる'},
   d_s:{name:'岸部分団',icon:'lake',cost:[1800],fx:()=>'池のある分団。ゲリラ豪雨で浸水が起きる'},
   d_n:{name:'千一分団',icon:'city',cost:[2500],fx:()=>'高層ビルが多い分団。高層ビル火災が起きる'},
+  d_nw:{name:'千二分団',icon:'town',cost:[1000],fx:()=>'古い木造の家が多い分団。火がとなりへ燃え移る延焼火災が起きる'},
+  d_ne:{name:'豊津分団',icon:'city',cost:[1500],fx:()=>'駅前の商店街がある分団。ヒノコの大群がやってくる'},
+  d_sw:{name:'吹一分団',icon:'city',cost:[2200],fx:()=>'工場が多い分団。大きな工場火災が起きる'},
+  d_se:{name:'吹二分団',icon:'town',cost:[3000],fx:()=>'公園と夏祭りの分団。熱中症の救護出動がある'},
   bus:{name:'路線バス',icon:'bus',cost:[200],fx:()=>'バス停に立つと、ほかの分団へすぐ行ける！'},
   soho:{name:'操法大会',icon:'hose'},
   amb:{name:'救急車',icon:'amb',cost:[150],fx:()=>'救急出動は救急車に乗って向かおう。クイズのヒントが使えて、ごほうび1.5倍'},
@@ -208,7 +212,11 @@ const PADS=[
   {id:'d_res',x:1000,y:190,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<3?'副分団長になると開ける':null},
   {id:'d_s',x:90,y:1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<4?'分団長になると開ける':null},
   {id:'d_n',x:90,y:-1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<5?'副団長になると開ける':null},
-  {id:'bus',x:175,y:205,unlock:()=>!!(S.lv.d_mt||S.lv.d_res||S.lv.d_s||S.lv.d_n)},
+  {id:'d_nw',x:-700,y:-720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<2?'部長になると開ける':null},
+  {id:'d_ne',x:700,y:-720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<3?'副分団長になると開ける':null},
+  {id:'d_sw',x:-700,y:720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<4?'分団長になると開ける':null},
+  {id:'d_se',x:700,y:720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<5?'副団長になると開ける':null},
+  {id:'bus',x:175,y:205,unlock:()=>DIST.some(d=>S.lv[d.id])},
   {id:'soho',x:-95,y:-95,unlock:()=>(S.rank||0)>=1},
   {id:'box',x:-300,y:168,unlock:()=>S.lv.yagura>=2||(S.rank||0)>=1},
   {id:'rail',get x(){return RAILS[Math.min(S.lv.rail||0,2)].pad.x},get y(){return RAILS[Math.min(S.lv.rail||0,2)].pad.y},unlock:()=>(S.lv.rail||0)<3&&S.lv.yagura>=RAILS[Math.min(S.lv.rail||0,2)].need},
@@ -227,7 +235,7 @@ const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
 
 /* ===================== 状態 ===================== */
 let S;
-function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0,d_s:0,d_n:0,bus:0,park:0,bousai:0,museum:0},eqp:{},dlv:{},st:{},badges:[],dcrew:{},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
+function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0,d_s:0,d_n:0,d_nw:0,d_ne:0,d_sw:0,d_se:0,bus:0,park:0,bousai:0,museum:0},eqp:{},dlv:{},st:{},badges:[],dcrew:{},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.v===3?s:null}catch(e){return null}}
 function save(){if(S&&S.ta)return true;if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 
@@ -262,7 +270,7 @@ let monT=3,bossT=90,payT=0,sellT=0,pileT=0,shake=0,zoom=1,regenT=0;
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const DIST=[{id:'d_mt',name:'山田分団',x:-1450,y:120,r:520,col:'#eef3ee'},{id:'d_res',name:'千里丘分団',x:1450,y:120,r:520,col:'#f5f8fb'},{id:'d_s',name:'岸部分団',x:0,y:1450,r:520,col:'#f1f6f9'},{id:'d_n',name:'千一分団',x:0,y:-1450,r:520,col:'#f3f4f7'}];
+const DIST=[{id:'d_mt',name:'山田分団',x:-1450,y:120,r:520,col:'#eef3ee'},{id:'d_res',name:'千里丘分団',x:1450,y:120,r:520,col:'#f5f8fb'},{id:'d_s',name:'岸部分団',x:0,y:1450,r:520,col:'#f1f6f9'},{id:'d_n',name:'千一分団',x:0,y:-1450,r:520,col:'#f3f4f7'},{id:'d_nw',name:'千二分団',x:-1080,y:-1080,r:520,col:'#f4efe6'},{id:'d_ne',name:'豊津分団',x:1080,y:-1080,r:520,col:'#f3f3f8'},{id:'d_sw',name:'吹一分団',x:-1080,y:1080,r:520,col:'#eef0f2'},{id:'d_se',name:'吹二分団',x:1080,y:1080,r:520,col:'#f0f6ee'}];
 DIST.forEach(d=>{d.bx=d.x;d.by=d.y-40;d.stop={x:d.x+95,y:d.y+70};d.sell={x:d.x-95,y:d.y+70};BLD.push({id:'dt',d,x:d.bx,y:d.by,w:116,h:60,ht:34});
   const pad={id:'dc_'+d.id,x:d.x,y:d.y+150,unlock:()=>!!S.lv[d.id]};PADS.push(pad);PADMAP[pad.id]=pad;UP[pad.id]={name:`${d.name}の団員`,icon:'crew'}});
 const LAKE={x:-190,y:1560,rx:140,ry:80};
@@ -654,7 +662,7 @@ function updVehicles(dt){
   if(S.lv.amb)A.lit=P.ride==='amb';
   if(S.lv.tank){const out=S.lv.truck&&dist(T.x,T.y,PARK.x,PARK.y)>40;{let gx=out?T.x-T.face*70:PADMAP.tank.x,gy=out?T.y+6:PADMAP.tank.y;const wp=viaBridge(Tk,gx,gy);if(wp){gx=wp.x;gy=wp.y}driveTo(Tk,gx,gy,wp?4:(out?30:6),out?truckSpeed()*1.4:180,dt)}Tk.lit=out}
   if(S.lv.ladder){L.lit=P.ride==='ladder';
-    if(P.ride==='ladder'){spray(L,140,8+2*yl(),dt);const h=nearest(houses,L.x,L.y,o=>o.person&&o.st!=='collapsed'&&dist(o.x,o.y,L.x,L.y)<100);
+    if(P.ride==='ladder'){if(L.w>0||L.conn){spray(L,140,8+2*yl(),dt);if(L.spray&&!L.conn)L.w=Math.max(0,L.w-6*dt)}else L.spray=null;const h=nearest(houses,L.x,L.y,o=>o.person&&o.st!=='collapsed'&&dist(o.x,o.y,L.x,L.y)<100);
       if(h){L.t+=dt;L.rt=h;if(L.t>1.5){L.t=0;rescuePerson(h);float(h.x,h.y-70,'はしごで救助！','#fff',13)}}else{L.t=0;L.rt=null}}
     else{L.t=0;L.rt=null;L.spray=null}}
 }
@@ -759,13 +767,13 @@ let HRB=BLD.find(b=>b.id==='hr');const HRBS=()=>BLD.filter(b=>b.id==='hr');
 let hr=null,hrT=100,hrW=0;
 const winXY=(c,r,b=HRB)=>({x:b.x-b.w/2+15+c*22,y:b.y+b.h/2-b.ht+16+r*21});
 function startHR(){const bs=HRBS().filter(b=>inArea(b.x,b.y,0));if(!bs.length)return;HRB=bs[Math.floor(Math.random()*bs.length)];const hd=distOf(HRB.x,HRB.y);const cols=[0,1,2,3].sort(()=>Math.random()-.5);
-  hr={t:150,fires:[0,1,2].map(i=>({c:cols[i],r:i%2,hp:10})),people:[{c:cols[3],r:2,saved:false},{c:cols[0],r:3,saved:false}],rt:0,near:false,aim:null};
-  snd('boss');buzz([80,60,80]);dispatch(hd?`${hd.name}から応援要請！ 高層ビル火災`:'マンションで高層ビル火災！','高い階はホースが届かない。はしご車で出動して、放水と救助をしよう',[{k:'ladder',label:'はしご車で出動'},{k:'walk',label:'あとで行く'}])}
+  hr={t:150,fires:[0,1,2].map(i=>({c:cols[i],r:i%2,hp:26})),people:[{c:cols[3],r:2,saved:false},{c:cols[0],r:3,saved:false}],rt:0,near:false,aim:null};
+  snd('boss');buzz([80,60,80]);dispatch(hd?`${hd.name}から応援要請！ 高層ビル火災`:'マンションで高層ビル火災！','高い階はホースが届かない。はしご車で出動して、放水と救助をしよう。はしご車の水は少ないので、消火栓・防火水槽につないで補給しながら消そう',[{k:'ladder',label:'はしご車で出動'},{k:'walk',label:'あとで行く'}])}
 function updHighrise(dt){
   if(!S.lv.ladder||ty)return;
   if(!hr){hrT-=dt;if(hrT<=0){hrT=170+Math.random()*40;startHR()}return}
   hr.t-=dt;const L=VEH.ladder;hr.near=P.ride==='ladder'&&dist(L.x,L.y,HRB.x,HRB.y+HRB.h/2)<200;hr.aim=null;
-  if(hr.near){const f=hr.fires.find(f=>f.hp>0);if(f){f.hp-=(8+2*yl())*dt;hr.aim=winXY(f.c,f.r);if(f.hp<=0){addMerit(2);drop('coin',HRB.x,HRB.y+50,3);const w=winXY(f.c,f.r);float(w.x,w.y-10,'消えた！','#fff',13);snd('kill')}}
+  if(hr.near){const f=hr.fires.find(f=>f.hp>0);if(f&&!(L.w>0||L.conn)){hrW-=dt;if(hrW<=0){hrW=2.5;float(L.x,L.y-80,'水がない！ 消火栓などにつなごう','#ffd0c6',13)}}if(f&&(L.w>0||L.conn)){f.hp-=(8+2*yl())*dt;if(!L.conn)L.w=Math.max(0,L.w-6*dt);hr.aim=winXY(f.c,f.r);if(f.hp<=0){addMerit(2);drop('coin',HRB.x,HRB.y+50,3);const w=winXY(f.c,f.r);float(w.x,w.y-10,'消えた！','#fff',13);snd('kill')}}
     const p=hr.people.find(p=>!p.saved);if(p){hr.rt+=dt;if(!hr.aim)hr.aim=winXY(p.c,p.r);if(hr.rt>2.2){hr.rt=0;p.saved=true;const w=winXY(p.c,p.r);addMerit(3);drop('coin',HRB.x,HRB.y+50,6+2*yl());float(w.x,w.y-10,'はしごで救助！','#fff',13);burst(w.x,w.y,'#3d93db',12);snd('buy')}}}
   else if(!P.ride&&dist(P.x,P.y,HRB.x,HRB.y)<220){hrW-=dt;if(hrW<=0){hrW=2.5;float(P.x,P.y-60,'高すぎて届かない！ はしご車で出動しよう','#ffd0c6',13)}}
   const fo=hr.fires.every(f=>f.hp<=0),ps=hr.people.every(p=>p.saved);
@@ -781,7 +789,7 @@ function drawHighrise(t,b){box(b.x,b.y,b.w,b.h,b.ht,'#dfe5ec','#9aa8ba');
     if(Math.random()<.3)parts.push({k:'smoke',x:w.x,y:w.y-16,r:5,life:1})}
   for(const p of hr.people){if(p.saved)continue;const w=winXY(p.c,p.r);cx.fillStyle='#f2c7a1';cx.beginPath();cx.arc(w.x,w.y-1,4,0,7);cx.fill();cx.strokeStyle='#f2c7a1';cx.lineWidth=2;const k=Math.sin(t/120)*3;cx.beginPath();cx.moveTo(w.x-4,w.y+2);cx.lineTo(w.x-8+k,w.y-8);cx.moveTo(w.x+4,w.y+2);cx.lineTo(w.x+8-k,w.y-8);cx.stroke();label('たすけて！',w.x,w.y-20,10,'#fff','#e5432a')}
   const L=VEH.ladder;if(hr.near&&hr.aim){cx.strokeStyle='#c9ced8';cx.lineWidth=4;cx.beginPath();cx.moveTo(L.x,L.y-40);cx.lineTo(hr.aim.x,hr.aim.y+8);cx.stroke();cx.lineWidth=1.5;cx.beginPath();const n=10;for(let i=1;i<n;i++){const q=i/n,x=L.x+(hr.aim.x-L.x)*q,y=L.y-40+(hr.aim.y+8-L.y+40)*q;cx.moveTo(x-4,y);cx.lineTo(x+4,y)}cx.stroke();
-    const f=hr.fires.find(f=>f.hp>0);if(f){const w=winXY(f.c,f.r);for(let i=0;i<3;i++){const q=((t/300)+i/3)%1;cx.fillStyle='rgba(61,147,219,.85)';cx.beginPath();cx.arc(L.x+(w.x-L.x)*q,L.y-40+(w.y-L.y+40)*q-Math.sin(q*Math.PI)*20,3.5,0,7);cx.fill()}}}
+    const f=hr.fires.find(f=>f.hp>0);if(f&&(L.w>0||L.conn)){const w=winXY(f.c,f.r);for(let i=0;i<3;i++){const q=((t/300)+i/3)%1;cx.fillStyle='rgba(61,147,219,.85)';cx.beginPath();cx.arc(L.x+(w.x-L.x)*q,L.y-40+(w.y-L.y+40)*q-Math.sin(q*Math.PI)*20,3.5,0,7);cx.fill()}}}
 }
 
 /* ===================== 避難所・倒木・救助ボート ===================== */
@@ -855,8 +863,8 @@ const RIVALS=['吹一','吹二','千一','千二','豊津','岸部','山田','�
 /* ===================== 所属分団・水利・ミニマップ ===================== */
 const ALL9=['吹一','吹二','吹三','千一','千二','豊津','岸部','山田','千里丘'];
 const homeName=()=>((S&&S.home)||'吹三')+'分団';
-const DPREF={d_mt:'山田',d_res:'千里丘',d_s:'岸部',d_n:'千一'},SPARE=['吹三','吹一','吹二','千二','豊津'];
-function distName(id){let n=DPREF[id];if(S&&S.home===n)n=SPARE.find(x=>x!==S.home);return n+'分団'}
+const DPREF={d_mt:'山田',d_res:'千里丘',d_s:'岸部',d_n:'千一',d_nw:'千二',d_ne:'豊津',d_sw:'吹一',d_se:'吹二'};
+function distName(id){let n=DPREF[id];if(S&&S.home===n)n=ALL9.find(x=>!Object.values(DPREF).includes(x));return n+'分団'}
 DIST.forEach(d=>{Object.defineProperty(d,'name',{get:()=>distName(d.id),configurable:true});Object.defineProperty(UP[d.id],'name',{get:()=>distName(d.id),configurable:true});Object.defineProperty(UP['dc_'+d.id],'name',{get:()=>distName(d.id)+'の団員',configurable:true})});
 function pickHome(first){modal(`<h2>所属分団を選ぼう</h2><p class="lead">きみはどの分団の団員？</p><div class="hgrid">${ALL9.map(n=>`<button class="hbtn ${(S.home||'吹三')===n?'on':''}" data-act="home" data-v="${n}">${n}分団</button>`).join('')}</div><p class="fic">あとからメニューで変えられます。※分団名はゲーム上のもので、実際の地域とは関係ありません。</p>${first?'':'<button class="btn sub" data-act="close">やめる</button>'}`)}
 function setHome(n){S.home=n;S.homeSet=true;save();closeModal();pop(`${n}分団に所属！`,'この分団の団員として町を守ろう');snd('buy')}
@@ -1073,6 +1081,108 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
 
 update=(o=>function(dt){o(dt);updDay(dt);taTick(dt)})(update);
 hud=(o=>function(){o();bgmTick()})(hud);
+
+/* ===================== 全分団・はしご車の水・分団ごとの災害 ===================== */
+const NEWD=['d_nw','d_ne','d_sw','d_se'];
+const DCENT=id=>DIST.find(d=>d.id===id);
+const STATION=(()=>{const d=DCENT('d_ne');return{x:d.x,y:d.y-190}})();
+const FEST=(()=>{const d=DCENT('d_se');return{x:d.x,y:d.y-210}})();
+const FACPOS=[[-190,-200],[190,-210],[-300,60],[300,40]];
+BLD.push({id:'station',x:STATION.x,y:STATION.y,w:150,h:44,ht:30});
+function roadOf(d){const sx=d.y<0?0:(d.x<0?-600:600),sy=d.y<0?-560:140;return [sx,sy,d.x,d.y+40]}
+function segD(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let q=((px-ax)*dx+(py-ay)*dy)/l;q=clamp(q,0,1);return Math.hypot(px-ax-q*dx,py-ay-q*dy)}
+genWorld=(o=>function(){o();const r=mulberry(2468);const add=[];
+  const ok=(x,y,d)=>dist(x,y,d.x,d.y)<500&&Math.hypot(x,y)>1090&&Math.abs(y-riverY(x))>62&&!nearDistStuff(x,y)&&dist(x,y,STATION.x,STATION.y)>120&&dist(x,y,FEST.x,FEST.y)>130;
+  for(const id of NEWD){const d=DCENT(id);const step=id==='d_nw'?66:id==='d_sw'?96:84;
+    if(id==='d_sw')FACPOS.forEach(([dx,dy])=>add.push({x:d.x+dx,y:d.y+dy,w:120,h:60,ht:34,roof:'#8796aa',st:'ok',hp:0,burn:0,t:0,sm:0,fac:true,dk:id}));
+    for(let gx=d.x-520;gx<=d.x+520;gx+=step)for(let gy=d.y-520;gy<=d.y+520;gy+=step){const x=gx+(r()-.5)*step*.45,y=gy+(r()-.5)*step*.45;if(!ok(x,y,d))continue;
+      if(id==='d_sw'&&FACPOS.some(([dx,dy])=>dist(x,y,d.x+dx,d.y+dy)<110))continue;
+      if(segD(x,y,...roadOf(d))<40)continue;
+      const v=r();
+      if(id==='d_nw'){if(v<.58)add.push({x,y,w:36+r()*8,h:30+r()*6,ht:18,roof:['#6b4a3a','#7a5a3a','#5f4a3f','#80604a'][Math.floor(r()*4)],st:'ok',hp:0,burn:0,t:0,sm:0,old:true,dk:id});else if(v<.74)trees.push(mkTree(x,y))}
+      else if(id==='d_ne'){if(v<.55)add.push({x,y,w:46+r()*12,h:34+r()*6,ht:22,roof:['#e5432a','#3d93db','#f3b648','#2fa86b','#8a7aa8'][Math.floor(r()*5)],st:'ok',hp:0,burn:0,t:0,sm:0,shop:true,dk:id});else if(v<.66)trees.push(mkTree(x,y))}
+      else if(id==='d_sw'){if(v<.3)add.push({x,y,w:44,h:34,ht:20,roof:ROOFS[Math.floor(r()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,dk:id});else if(v<.55)trees.push(mkTree(x,y))}
+      else{if(v<.42)add.push({x,y,w:44+r()*12,h:34+r()*8,ht:20,roof:ROOFS[Math.floor(r()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,dk:id});else if(v<.72)trees.push(mkTree(x,y))}}}
+  houses.push(...add);
+  trees=trees.filter(t=>!NEWD.some(id=>segD(t.x,t.y,...roadOf(DCENT(id)))<34&&dist(t.x,t.y,DCENT(id).x,DCENT(id).y)<560)&&dist(t.x,t.y,STATION.x,STATION.y)>110&&dist(t.x,t.y,FEST.x,FEST.y)>120&&!(DCENT('d_sw')&&FACPOS.some(([dx,dy])=>dist(t.x,t.y,DCENT('d_sw').x+dx,DCENT('d_sw').y+dy)<95)))})(genWorld);
+
+/* --- はしご車の水 --- */
+const LCAP=()=>20;
+let lTip=false,lW=0;
+function updLadderWater(dt){if(!S.lv.ladder)return;const L=VEH.ladder;if(L.w==null)L.w=LCAP();const ws=waterSrc(L);L.conn=ws&&dist(L.x,L.y,ws.x,ws.y)<(ws.k==='river'?40:82)?ws:null;
+  if(L.conn)L.w=Math.min(LCAP(),L.w+45*dt);
+  if(P.ride==='ladder'&&L.w<1&&!L.conn){if(!lTip){lTip=true;toast('はしご車の水がなくなった！ 消火栓・防火水槽・川につないで補給しよう','ng')}lW-=dt;if(lW<=0){lW=2.5;float(L.x,L.y-80,'水がない！ 水利につなごう','#ffd0c6',13)}}}
+drawVeh=(o=>function(kind,v,t){o(kind,v,t);if(kind!=='ladder'||v.w==null)return;const f=clamp(v.w/LCAP(),0,1),x=v.x-22,y=v.y-66;
+  if(v.conn&&(v.spray||v.w<LCAP()-.5||(hr&&hr.aim))){cx.strokeStyle='#d7a52b';cx.lineWidth=3;cx.beginPath();cx.moveTo(v.x,v.y-10);cx.quadraticCurveTo((v.x+v.conn.x)/2,(v.y+v.conn.y)/2+20,v.conn.x,v.conn.y-8);cx.stroke()}
+  cx.fillStyle='rgba(27,39,64,.7)';rr(x-2,y-2,48,9,4);cx.fill();cx.fillStyle=f<.25?'#ff6b4a':'#3d93db';cx.fillRect(x,y,44*f,5);
+  if(v.conn)label('補給中',v.x,y-10,9,'#fff','#2f78b8');else if(f<.05)label('水がない',v.x,y-10,9,'#fff','#e5432a')})(drawVeh);
+
+/* --- 分団ごとの災害（千二・豊津・吹一・吹二） --- */
+let dEv=null,devT=130;
+const DEVK={d_nw:'spread',d_ne:'swarm',d_sw:'factory',d_se:'heat'};
+const HEAT_TIPS=['すずしい日かげへ運ぼう','首やわきの下を冷やそう','水分と塩分をとろう','意識がないときは119番！'];
+function devOpts(id,k){const o=[];if(k==='heat'){if(S.lv.amb)o.push({k:'amb',label:'救急車で出動'})}else if(S.lv.truck)o.push({k:'truck',label:'ポンプ車で出動'});return [...o,...busOpt(id),{k:'walk',label:'歩いて向かう'}]}
+function startDev(id){const d=DCENT(id),k=DEVK[id],nm=d.name;
+  if(k==='spread'){const c=houses.filter(h=>h.dk===id&&h.st==='ok'&&dist(h.x,h.y,d.x,d.y)<380);if(!c.length)return;const h=c[Math.floor(Math.random()*c.length)];ignite(h);h.ev=true;
+    dEv={k,id,t:120,list:[h],sp:7,max:7};dispatch(`${nm}から応援要請！ 延焼火災`,'古い木造の家が多く、火がとなりの家に燃え移っていく。早く消そう！ ポンプ車はイベントの火事には自動で行きません',devOpts(id,k))}
+  else if(k==='swarm'){const ms=[];for(let i=0,k=0;i<7&&k<200;k++){const a=Math.random()*Math.PI*2,rr0=440+Math.random()*60,x=d.x+Math.cos(a)*rr0,y=d.y+Math.sin(a)*rr0;if(houses.some(h=>h.st==='ok'&&dist(h.x,h.y,x,y)<90)||inRiver(x,y))continue;i++;const hp=6*Math.pow(1.7,yl()-1);const m={x,y,hp,max:hp,boss:false,t:Math.random()*9,hit:0,house:null,sw:true};mons.push(m);ms.push(m)}
+    dEv={k,id,t:100,ms,killed:0};dispatch(`${nm}から応援要請！ ヒノコの大群`,'駅前の商店街にヒノコの大群が向かっている。家に火がつく前に倒そう！',devOpts(id,k))}
+  else if(k==='factory'){const c=houses.filter(h=>h.fac&&h.st==='ok');if(!c.length)return;const h=c[Math.floor(Math.random()*c.length)];ignite(h);h.ev=true;h.hp=120*(1+.6*(yl()-1));h.fmax=h.hp;
+    dEv={k,id,t:120,h};dispatch(`${nm}から応援要請！ 工場火災`,'大きな工場が燃えている。たくさんの水が必要！ 水がなくなったら消火栓・防火水槽で補給しながら消そう',devOpts(id,k))}
+  else if(k==='heat'){const ps=[[-60,30],[70,10],[0,-60]].map(([dx,dy])=>({x:FEST.x+dx,y:FEST.y+dy,care:0,ok:false}));dEv={k,id,t:90,ps,tip:0};
+    dispatch(`${nm}から応援要請！ 夏祭りで熱中症`,'具合が悪くなった人がいる。そばに行って手当てしよう（救急車だと早い）',devOpts(id,k))}
+  snd('boss');buzz([80,60,80])}
+function endDev(ok,msg){const e=dEv;dEv=null;devT=150+Math.random()*40;const d=DCENT(e.id);
+  pop(ok?`${msg} 成功！`:`${msg} おわり`,ok?`${d.name}「応援ありがとう！」`:'次はもっと早く駆けつけよう');
+  if(ok){drop('coin',P.x,P.y,15*yl());addMerit(6);support(e.id);stAdd('dev');setTimeout(()=>giveBox(`${d.name}の${msg}`),1500)}else addMerit(1)}
+function updDev(dt){
+  const opened=NEWD.filter(id=>S.lv[id]);if(!opened.length)return;
+  if(!dEv){if(ty||hr||eq||ff||rain||em)return;devT-=dt;if(devT<=0){devT=40;startDev(opened[Math.floor(Math.random()*opened.length)])}return}
+  const e=dEv;e.t-=dt;
+  if(e.k==='spread'){e.sp-=dt;if(e.sp<=0){e.sp=7;const burning=e.list.filter(h=>h.st==='fire');if(e.list.length<e.max)for(const b of burning){const n=nearest(houses,b.x,b.y,h=>h.st==='ok'&&h.dk===e.id&&!e.list.includes(h)&&dist(h.x,h.y,b.x,b.y)<150);if(n){ignite(n);n.ev=true;e.list.push(n);float(n.x,n.y-50,'燃え移った！','#ffd0c6',13);break}}}
+    if(!e.list.some(h=>h.st==='fire')){const lost=e.list.filter(h=>h.st==='ruin').length;endDev(lost===0,'延焼火災')}else if(e.t<=0){e.list.forEach(h=>{if(h.st==='fire'){h.st='ok';h.ev=false}});endDev(false,'延焼火災')}}
+  else if(e.k==='swarm'){if(!e.ms.some(m=>!m.dead&&mons.includes(m)))endDev(e.ms.length-e.killed<=2,'ヒノコの大群 撃退');else if(e.t<=0){e.ms.forEach(m=>m.dead=true);endDev(false,'ヒノコの大群 撃退')}}
+  else if(e.k==='factory'){if(e.h.st!=='fire')endDev(e.h.st==='ok','工場火災 鎮火');else if(e.t<=0){e.h.st='ok';e.h.ev=false;endDev(false,'工場火災 鎮火')}}
+  else if(e.k==='heat'){const near=P.ride==='amb'?VEH.amb:(P.ride?null:P);
+    for(const p of e.ps){if(p.ok)continue;if(near&&dist(near.x,near.y,p.x,p.y)<(P.ride==='amb'?70:40)){p.care+=dt*(P.ride==='amb'?2:1);if(p.care>=2){p.ok=true;addMerit(2);drop('coin',p.x,p.y,4+yl());float(p.x,p.y-50,HEAT_TIPS[e.tip++%HEAT_TIPS.length],'#fff',14);burst(p.x,p.y-20,'#2fa86b',16);snd('buy')}}}
+    if(e.ps.every(p=>p.ok))endDev(true,'熱中症の手当て');else if(e.t<=0)endDev(false,'熱中症の手当て')}}
+killMon=(o=>function(m){o(m);if(m.sw&&dEv&&dEv.k==='swarm')dEv.killed++})(killMon);
+function devGuide(){const e=dEv;if(!e)return null;const nm=DCENT(e.id).name;
+  if(e.k==='spread'){const h=nearest(e.list,P.x,P.y,o=>o.st==='fire');return h&&{t:`${nm}で延焼火災！ 燃え移る前に消そう（燃えている家 ${e.list.filter(h=>h.st==='fire').length}軒・あと${Math.ceil(e.t)}秒）`,tg:h,mode:'alert'}}
+  if(e.k==='swarm'){const m=nearest(e.ms,P.x,P.y,m=>!m.dead);const n=e.ms.filter(m=>!m.dead).length;return m&&{t:`${nm}にヒノコの大群！ 商店街を守ろう（のこり${n}匹）`,tg:m,mode:'alert'}}
+  if(e.k==='factory')return {t:`${nm}で工場火災！ たくさん放水しよう。水がなくなったら水利で補給（あと${Math.ceil(e.t)}秒）`,tg:e.h,mode:'alert'};
+  if(e.k==='heat'){const p=nearest(e.ps,P.x,P.y,p=>!p.ok);return p&&{t:`${nm}の夏祭りで熱中症！ そばで手当てしよう（あと${Math.ceil(e.t)}秒）`,tg:p,mode:'alert'}}}
+function setGuide(g){guide=g;const el=document.getElementById('goal');el.className=g.mode||'';document.getElementById('goalTag').textContent=g.mode==='gold'?'コイン':g.mode==='alert'?'出動':'目標';const gt=document.getElementById('goalText');if(gt.textContent!==g.t)gt.textContent=g.t}
+updGuide=(o=>function(){o();let g=null;
+  if(dEv&&guide.mode!=='alert')g=devGuide();
+  const L=VEH.ladder;if(P.ride==='ladder'&&L.w!=null&&L.w<LCAP()*.2&&!L.conn){const ws=waterSrc(L);if(ws)g={t:'はしご車の水が少ない！ 消火栓・防火水槽・川の近くに止めてつなごう',tg:ws,mode:'alert'}}
+  if(g)setGuide(g)})(updGuide);
+
+/* --- 描画（工場・駅・夏祭り・道路・患者） --- */
+drawHouse=(o=>function(h,t){o(h,t);if(!h.fac||h.st==='ruin')return;const top=h.y-h.h/2-h.ht;
+  cx.fillStyle='#6f7d92';for(let i=0;i<4;i++){const x0=h.x-h.w/2+i*h.w/4;cx.beginPath();cx.moveTo(x0,top+h.h*.55);cx.lineTo(x0+h.w/4,top+h.h*.15);cx.lineTo(x0+h.w/4,top+h.h*.55);cx.closePath();cx.fill()}
+  cx.fillStyle='#9aa3b2';cx.fillRect(h.x+h.w/2-18,top-30,10,40);cx.fillStyle='#e5432a';cx.fillRect(h.x+h.w/2-18,top-30,10,5);
+  label('工場',h.x,h.y+h.h/2-h.ht/2,10,'#22355c');
+  if(h.st==='fire'&&h.fmax){const f=clamp(h.hp/h.fmax,0,1);cx.fillStyle='rgba(27,39,64,.7)';rr(h.x-32,top-48,64,8,4);cx.fill();cx.fillStyle='#ff6b4a';cx.fillRect(h.x-31,top-47,62*f,6)}})(drawHouse);
+drawBld=(o=>function(b,t){if(b.id!=='station')return o(b,t);if(!S.lv.d_ne&&dist(cam.x,cam.y,b.x,b.y)>900)return;
+  cx.fillStyle='#b9c2cf';cx.fillRect(b.x-260,b.y+b.h/2+6,520,6);cx.fillStyle='#8a94a6';for(let x=-256;x<260;x+=18)cx.fillRect(b.x+x,b.y+b.h/2+4,4,10);
+  box(b.x,b.y,b.w,b.h,b.ht,'#eef1f5','#2f78b8');cx.fillStyle='#bfe0f5';for(let i=0;i<5;i++)cx.fillRect(b.x-60+i*26,b.y+b.h/2-b.ht+8,16,10);
+  label('駅',b.x,b.y-b.h/2-b.ht+14,14,'#fff',null,'#1f5c94')})(drawBld);
+drawBusStops=(o=>function(t){
+  for(const d of openD()){if(!NEWD.includes(d.id))continue;cx.strokeStyle='#cfd8e2';cx.lineWidth=24;cx.lineCap='butt';cx.beginPath();
+    const [sx,sy,ex,ey]=roadOf(d);cx.moveTo(sx,sy);cx.lineTo(ex,ey);cx.stroke()}
+  if(S.lv.d_se&&dist(cam.x,cam.y,FEST.x,FEST.y)<900){const f=FEST;cx.fillStyle='#ead9b8';cx.beginPath();cx.ellipse(f.x,f.y,120,70,0,0,7);cx.fill();
+    cx.fillStyle='#8a5a3a';cx.fillRect(f.x-26,f.y-60,52,30);cx.fillStyle='#e5432a';cx.fillRect(f.x-30,f.y-64,60,6);cx.fillStyle='#fff';cx.fillRect(f.x-30,f.y-44,60,4);
+    for(let i=0;i<9;i++){const a=i/9*Math.PI*2,x=f.x+Math.cos(a)*105,y=f.y+Math.sin(a)*58;cx.fillStyle=i%2?'#e5432a':'#f3b648';cx.beginPath();cx.ellipse(x,y-26,5,7,0,0,7);cx.fill();cx.fillStyle='#5d6b84';cx.fillRect(x-1,y-20,2,20)}
+    label('夏祭り',f.x,f.y-80,12,'#fff','#e5432a')}
+  o(t)})(drawBusStops);
+function drawHeat(t){if(!dEv||dEv.k!=='heat')return;for(const p of dEv.ps){if(p.ok)continue;const pl=1+.15*Math.sin(t/140);cx.strokeStyle='rgba(229,67,42,.8)';cx.lineWidth=3;cx.beginPath();cx.ellipse(p.x,p.y,30*pl,12*pl,0,0,7);cx.stroke();
+  shadow(p.x,p.y+3,18,5);cx.fillStyle='#f3b648';rr(p.x-13,p.y-8,22,10,4);cx.fill();cx.fillStyle='#2b2f3a';cx.fillRect(p.x-21,p.y-6,9,6);cx.fillStyle='#f2c7a1';cx.beginPath();cx.arc(p.x+13,p.y-4,6,0,7);cx.fill();
+  label('熱中症',p.x,p.y-30,12,'#fff','#e5432a');if(p.care>0){cx.fillStyle='rgba(27,39,64,.7)';rr(p.x-18,p.y-48,36,6,3);cx.fill();cx.fillStyle='#2fa86b';cx.fillRect(p.x-17,p.y-47,34*clamp(p.care/2,0,1),4)}}}
+drawPads=(o=>function(t){o(t);drawHeat(t)})(drawPads);
+resetWorld=(o=>function(){o();dEv=null;devT=130;lTip=false})(resetWorld);
+update=(o=>function(dt){o(dt);updLadderWater(dt);updDev(dt)})(update);
+BADGES.push(['dist8','🗺️','全分団 結成（8分団）',()=>openD().length>=8],['dev3','🚨','分団の応援出動（3回）',()=>(S.st.dev||0)>=3]);
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
@@ -1512,7 +1622,8 @@ const LOOP=`<ul class="loop">
 <li><span class="n">4</span><span>光る丸に立つ → コインで<b>斧・ホース・ポンプ車</b>を買って強くなる</span></li>
 <li><span class="n">5</span><span><b>出動指令</b>が出たら、合う車両に乗って出動！ 火事はポンプ車か歩きで、救急は救急車、高層ビル火災ははしご車で</span></li>
 <li><span class="n">6</span><span>班長になると<b>分団対抗の操法大会</b>に出場できる。部長からは<b>新しい分団</b>を結成でき、<b>路線バス</b>で行き来できる</span></li>
-<li><span class="n">7</span><span><b>台風</b>が来る前に、川の堤防に<b>土嚢</b>を積んで町を守ろう</span></li>
+<li><span class="n">7</span><span>はしご車とポンプ車は水を積んだ分しか放水できない。<b>消火栓・防火水槽・川</b>の近くに止めると補給できる</span></li>
+<li><span class="n">8</span><span><b>台風</b>が来る前に、川の堤防に<b>土嚢</b>を積んで町を守ろう</span></li>
 </ul>`;
 function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>はじめに所属する分団を選んでね</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><button class="btn sub" data-act="ta">🏆 3分チャレンジ（フェスタ用）</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
@@ -1548,7 +1659,7 @@ function loop(t){
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
-  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(!S.home)S.home='吹三';if(S.homeSet==null)S.homeSet=S.earned>0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;if(!S.eqp)S.eqp={};if(S.clock==null)S.clock=0;if(!S.dlv)S.dlv={};if(!S.st)S.st={};if(!S.badges)S.badges=[];for(const k of ['park','bousai','museum'])if(S.lv[k]==null)S.lv[k]=0;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
+  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','d_nw','d_ne','d_sw','d_se','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(!S.home)S.home='吹三';if(S.homeSet==null)S.homeSet=S.earned>0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;if(!S.eqp)S.eqp={};if(S.clock==null)S.clock=0;if(!S.dlv)S.dlv={};if(!S.st)S.st={};if(!S.badges)S.badges=[];for(const k of ['park','bousai','museum'])if(S.lv[k]==null)S.lv[k]=0;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
   resize();addEventListener('resize',resize);resetWorld();checkBadges(true);
   if(/[?&]festa/.test(location.search))taIntro();else if(!S.started)intro();else if(S.earned>0)cont();
   setInterval(save,3000);addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save();last=performance.now()});
