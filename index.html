@@ -87,6 +87,10 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 .shlog span{font-family:var(--display);font-size:12px;border-radius:999px;padding:3px 9px;color:#fff;background:var(--navy)}
 .shlog span.p{background:var(--kin);color:#4a3306}.shlog span.m{background:#9aa3b2}
 .shstep{font-family:var(--display);font-size:24px;text-align:center;color:var(--navy);margin:0}
+.town{font-family:var(--display);font-size:11px;color:#fff;background:#e5432a;border-radius:999px;padding:4px 10px;box-shadow:0 2px 8px rgba(27,39,64,.16);white-space:nowrap}
+.rk{width:100%;border-collapse:collapse;font-size:13px}.rk td{padding:4px 6px;border-bottom:1px solid #eef2f6;font-variant-numeric:tabular-nums}.rk td:first-child{width:2.5em;font-family:var(--display)}.rk td:last-child{text-align:right}
+.rk tr.me td{background:#fff1c2;font-weight:700}
+.fic{font-size:11px;color:var(--mute);text-align:center;line-height:1.5}
 #zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
 #zoom button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel);font-family:var(--display);font-size:22px;line-height:1;color:var(--ink);box-shadow:0 2px 8px rgba(27,39,64,.2);cursor:pointer}
 #zoom button:disabled{opacity:.4;cursor:default}
@@ -130,7 +134,7 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
     <button class="rbtn" id="muteBtn" aria-label="音のオンオフ">音 ON</button>
     <button class="rbtn" id="menuBtn">MENU</button>
   </div>
-  <div class="rrow"><div class="rank"><span class="badge" id="hRank">団員</span><span class="rbar"><i id="hRankBar"></i></span></div></div>
+  <div class="rrow"><div class="rank"><span class="badge" id="hRank">団員</span><span class="rbar"><i id="hRankBar"></i></span></div><span class="town" id="hTown">吹三分団</span></div>
   <div id="goal"><span class="tag" id="goalTag">目標</span><p id="goalText"></p></div>
 </div>
 <div id="zoom"><button id="zIn" aria-label="ズームイン">＋</button><button id="zOut" aria-label="ズームアウト">－</button></div>
@@ -156,8 +160,11 @@ const UP={
   levee:{name:'堤防',icon:'levee',cost:[60,160,380],fx:l=>`堤防が${l}段高くなった！ 土嚢が少なくても町を守れる`},
   rail:{name:'トロッコ',icon:'cart',cost:[80,220,520],fx:l=>`${['','南','西','東'][l]}の森にトロッコ駅ができた！ 木を置くと自動で売ってくれる`},
   box:{name:'装備箱',icon:'chest',fx:()=>''},
-  d_mt:{name:'山の地区',icon:'mt',cost:[800],fx:()=>'森がたくさん！ ときどき林野火災が起きる'},
-  d_res:{name:'住宅街',icon:'town',cost:[1200],fx:()=>'家がたくさん！ ときどき地震が起きる'},
+  d_mt:{name:'山田分団',icon:'mt',cost:[800],fx:()=>'森が多い分団。ときどき林野火災が起きる'},
+  d_res:{name:'千里丘分団',icon:'town',cost:[1200],fx:()=>'家が多い分団。ときどき地震が起きる'},
+  d_s:{name:'岸部分団',icon:'lake',cost:[1800],fx:()=>'池のある分団。ゲリラ豪雨で浸水が起きる'},
+  d_n:{name:'千一分団',icon:'city',cost:[2500],fx:()=>'高層ビルが多い分団。高層ビル火災が起きる'},
+  bus:{name:'路線バス',icon:'bus',cost:[200],fx:()=>'バス停に立つと、ほかの分団へすぐ行ける！'},
   soho:{name:'操法大会',icon:'hose'},
   amb:{name:'救急車',icon:'amb',cost:[150],fx:()=>'救急出動は救急車に乗って向かおう。クイズのヒントが使えて、ごほうび1.5倍'},
   tank:{name:'水槽車',icon:'tank',cost:[250],fx:()=>'ポンプ車についていって、放水パワーが2倍になる'},
@@ -179,6 +186,9 @@ const PADS=[
   {id:'ladder',x:318,y:-118,unlock:()=>(S.rank||0)>=2},
   {id:'d_mt',x:-1000,y:190,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<2?'部長になると開ける':null},
   {id:'d_res',x:1000,y:190,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<3?'副分団長になると開ける':null},
+  {id:'d_s',x:90,y:1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<4?'分団長になると開ける':null},
+  {id:'d_n',x:90,y:-1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<5?'副団長になると開ける':null},
+  {id:'bus',x:175,y:205,unlock:()=>!!(S.lv.d_mt||S.lv.d_res||S.lv.d_s||S.lv.d_n)},
   {id:'soho',x:-95,y:-95,unlock:()=>(S.rank||0)>=1},
   {id:'box',x:-300,y:168,unlock:()=>S.lv.yagura>=2||(S.rank||0)>=1},
   {id:'rail',get x(){return RAILS[Math.min(S.lv.rail||0,2)].pad.x},get y(){return RAILS[Math.min(S.lv.rail||0,2)].pad.y},unlock:()=>(S.lv.rail||0)<3&&S.lv.yagura>=RAILS[Math.min(S.lv.rail||0,2)].need},
@@ -190,13 +200,14 @@ const BLD=[
   {id:'garage',x:212,y:-8,w:120,h:62,ht:36},
   {id:'tower',x:0,y:-128,w:52,h:30,ht:0},
   {id:'hr',x:300,y:330,w:96,h:60,ht:170},
+  {id:'hr',x:-230,y:-1470,w:96,h:60,ht:170},{id:'hr',x:235,y:-1580,w:96,h:60,ht:190},{id:'hr',x:215,y:-1300,w:96,h:60,ht:150},
 ];
 const PILE={x:78,y:112}, PARK={x:212,y:52}, START={x:0,y:210};
 const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
 
 /* ===================== 状態 ===================== */
 let S;
-function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
+function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0,amb:0,tank:0,ladder:0,d_mt:0,d_res:0,d_s:0,d_n:0,bus:0},dcrew:{},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.v===3?s:null}catch(e){return null}}
 function save(){if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 
@@ -215,11 +226,11 @@ const truckSpeed=()=>150+25*S.lv.truck;
 const crewMax=()=>1+2*S.lv.yagura;
 const crewCost=()=>Math.round(15*Math.pow(1.6,S.crew));
 const yl=()=>S.lv.yagura;
-function padCost(id){if(id==='soho')return null;if(id==='box')return Math.min(500,60+30*(S.boxN||0));if(id==='crew')return S.crew<crewMax()?crewCost():null;const c=UP[id].cost[S.lv[id]];return c==null?null:c}
+function padCost(id){if(id==='soho')return null;if(id.startsWith('dc_')){const n=(S.dcrew||{})[id.slice(3)]||0;return n<3?Math.round(60*Math.pow(1.6,n)):null}if(id==='box')return Math.min(500,60+30*(S.boxN||0));if(id==='crew')return S.crew<crewMax()?crewCost():null;const c=UP[id].cost[S.lv[id]];return c==null?null:c}
 function padRem(id){const c=padCost(id);return c==null?null:c-(S.paid[id]||0)}
 const unlocked=p=>!p.unlock||p.unlock();
 const padName=id=>UP[id].name;
-function padLvText(id){if(id==='crew')return `${S.crew+1}人目`;if(id==='box')return '';if(id==='rail')return ['南の駅','西の駅','東の駅'][S.lv.rail]||'';if(VEHS.includes(id)||id.startsWith('d_'))return '';if(id==='truck'&&S.lv.truck===0)return '';return 'Lv'+(S.lv[id]+1)}
+function padLvText(id){if(id==='crew')return `${S.crew+1}人目`;if(id==='box')return '';if(id==='rail')return ['南の駅','西の駅','東の駅'][S.lv.rail]||'';if(id.startsWith('dc_'))return `${((S.dcrew||{})[id.slice(3)]||0)+1}人目`;if(VEHS.includes(id)||id.startsWith('d_')||id==='bus')return '';if(id==='truck'&&S.lv.truck===0)return '';return 'Lv'+(S.lv[id]+1)}
 
 /* ===================== 実行時 ===================== */
 const P={x:START.x,y:START.y,face:1,moving:false,hp:5,hurt:0,since:9,ride:false,chopT:0,spray:null,full:0};
@@ -231,14 +242,19 @@ let monT=3,bossT=90,payT=0,sellT=0,pileT=0,shake=0,zoom=1,regenT=0;
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const DIST=[{id:'d_mt',name:'山の地区',x:-1450,y:120,r:520},{id:'d_res',name:'住宅街',x:1450,y:120,r:520}];
+const HOME='吹三分団';
+const DIST=[{id:'d_mt',name:'山田分団',x:-1450,y:120,r:520,col:'#eef3ee'},{id:'d_res',name:'千里丘分団',x:1450,y:120,r:520,col:'#f5f8fb'},{id:'d_s',name:'岸部分団',x:0,y:1450,r:520,col:'#f1f6f9'},{id:'d_n',name:'千一分団',x:0,y:-1450,r:520,col:'#f3f4f7'}];
+DIST.forEach(d=>{d.bx=d.x;d.by=d.y-40;d.stop={x:d.x+95,y:d.y+70};d.sell={x:d.x-95,y:d.y+70};BLD.push({id:'dt',d,x:d.bx,y:d.by,w:116,h:60,ht:34});
+  const pad={id:'dc_'+d.id,x:d.x,y:d.y+150,unlock:()=>!!S.lv[d.id]};PADS.push(pad);PADMAP[pad.id]=pad;UP[pad.id]={name:`${d.name}の団員`,icon:'crew'}});
+const LAKE={x:-190,y:1560,rx:140,ry:80};
+const nearDistStuff=(x,y)=>DIST.some(d=>dist(x,y,d.bx,d.by)<105||dist(x,y,d.stop.x,d.stop.y)<60||dist(x,y,d.sell.x,d.sell.y)<60||dist(x,y,d.x,d.y+150)<55||(Math.abs(x)<40&&Math.abs(y)>1000))||BLD.some(b=>b.id==='hr'&&dist(x,y,b.x,b.y)<115)||((x-LAKE.x)/(LAKE.rx+40))**2+((y-LAKE.y)/(LAKE.ry+40))**2<1;
 const openD=()=>DIST.filter(d=>S.lv[d.id]);
 function inArea(x,y,m){if(Math.hypot(x,y)<radius()-m)return true;for(const d of openD())if(dist(x,y,d.x,d.y)<d.r-m)return true;return false}
 const active=o=>inArea(o.x,o.y,18);
 function blocked(x,y){for(const b of BLD){if(Math.abs(x-b.x)<b.w/2+8&&y>b.y-b.h/2-4&&y<b.y+b.h/2+10)return true}for(const l of logs){if(Math.abs(x-l.x)<42&&Math.abs(y-l.y)<14)return true}return false}
 let logs=[];
 const riverY=x=>-310+16*Math.sin(x/190);
-const inRiver=(x,y)=>Math.abs(y-riverY(x))<28;
+const inRiver=(x,y)=>Math.abs(y-riverY(x))<28||((x+190)/140)**2+((y-1560)/80)**2<1;
 const onBridge=(x,y)=>Math.abs(x)<24&&inRiver(x,y);
 const DEPOT={x:-150,y:-150};
 const SHELTER={x:-75,y:42};
@@ -264,6 +280,13 @@ function genWorld(){
   for(let gx=940;gx<=1960;gx+=94)for(let gy=-420;gy<=660;gy+=94){const x=gx+(r2()-.5)*40,y=gy+(r2()-.5)*40;
     if(dist(x,y,1450,120)>500||Math.hypot(x,y)<1090||Math.abs(y-140)<46||Math.abs(y-riverY(x))<62)continue;const v=r2();
     if(v<.58)houses.push({x,y,w:44+r2()*14,h:34+r2()*8,ht:20,roof:ROOFS[Math.floor(r2()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,res:true});else if(v<.7)trees.push(mkTree(x,y))}
+  for(let gx=-520;gx<=520;gx+=92)for(let gy=930;gy<=1970;gy+=92){const x=gx+(r2()-.5)*40,y=gy+(r2()-.5)*40;
+    if(dist(x,y,0,1450)>500||Math.hypot(x,y)<1090)continue;const v=r2();
+    if(v<.5)houses.push({x,y,w:44+r2()*12,h:34+r2()*8,ht:20,roof:ROOFS[Math.floor(r2()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,ds:true});else if(v<.72)trees.push(mkTree(x,y))}
+  for(let gx=-520;gx<=520;gx+=88)for(let gy=-1970;gy<=-930;gy+=88){const x=gx+(r2()-.5)*36,y=gy+(r2()-.5)*36;
+    if(dist(x,y,0,-1450)>500||Math.hypot(x,y)<1090)continue;const v=r2();
+    if(v<.6)houses.push({x,y,w:46+r2()*14,h:34+r2()*8,ht:22,roof:ROOFS[Math.floor(r2()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,dn:true});else if(v<.7)trees.push(mkTree(x,y))}
+  trees=trees.filter(t=>!nearDistStuff(t.x,t.y));houses=houses.filter(h=>!nearDistStuff(h.x,h.y));
   RIVER_HOUSES.forEach(([x,y],i)=>houses.push({x,y,w:46+(i%3)*5,h:36,ht:20,roof:ROOFS[i%ROOFS.length],st:'ok',hp:0,burn:0,t:0,sm:0}));
 }
 function mkTree(x,y){return{x,y,hp:3,st:'up',t:0,shake:0}}
@@ -310,7 +333,9 @@ function ignite(h){h.ev=false;h.st='fire';h.hp=12*(1+.6*(yl()-1));h.burn=0;h.sm=
 function levelUp(id){
   S.paid[id]=0;const p=PADMAP[id];burst(p.x,p.y,'#f3b648',34);snd('buy');buzz(40);shake=6;
   if(id==='box'){S.boxN=(S.boxN||0)+1;giveBox('装備屋で買った');return}
-  if(id.startsWith('d_')){S.lv[id]=1;pop(`${UP[id].name}がひらいた！`,UP[id].fx());return}
+  if(id.startsWith('dc_')){const k=id.slice(3);S.dcrew=S.dcrew||{};S.dcrew[k]=(S.dcrew[k]||0)+1;addWorker(p.x,p.y);pop(`${UP[id].name}が入団！`,'この分団の木を切って、近くの買取所で売ってくれる');return}
+  if(id==='bus'){S.lv.bus=1;pop('路線バス 開通！',UP.bus.fx());return}
+  if(id.startsWith('d_')){S.lv[id]=1;pop(`${UP[id].name}を結成！`,UP[id].fx());return}
   if(VEHS.includes(id)){S.lv[id]=1;const v=VEH[id];v.x=PADMAP[id].x;v.y=PADMAP[id].y;pop(`${UP[id].name} 配備！`,UP[id].fx());return}
   if(id==='crew'){S.crew++;addWorker(p.x,p.y);pop('団員が入団！',UP.crew.fx());return}
   S.lv[id]++;const L=S.lv[id];
@@ -332,7 +357,7 @@ function updWorker(w,dt){
       if(!tr||tr.st!=='up')w.st=w.wood>=6?'ret':'seek'}
   }else{
     if(!w.dep)w.dep=nearestDeposit(w.x,w.y);const dp=w.dep;
-    if(move(dp.x,dp.y,26)){if(dp.line!=null){S.rs[dp.line].w+=w.wood;float(dp.x,dp.y-30,'+'+w.wood,'#d9a46e',12)}else{const v=w.wood*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-20,'+'+Math.floor(v),'#f3b648',13)}w.wood=0;w.dep=null;w.st='seek'}
+    if(move(dp.x,dp.y,26)){if(dp.line!=null){S.rs[dp.line].w+=w.wood;float(dp.x,dp.y-30,'+'+w.wood,'#d9a46e',12)}else if(dp.dsell){const v=Math.floor(w.wood*MULT[S.lv.price]);S.coins+=v;S.earned+=v;float(dp.x,dp.y-30,'+'+v,'#f3b648',13)}else{const v=w.wood*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-20,'+'+Math.floor(v),'#f3b648',13)}w.wood=0;w.dep=null;w.st='seek'}
   }
 }
 function chips(x,y){for(let i=0;i<4;i++){const a=-Math.PI/2+(Math.random()-.5)*2;parts.push({k:'chip',x,y,vx:Math.cos(a)*90,vy:Math.sin(a)*90,life:.6})}}
@@ -351,6 +376,7 @@ function updGuide(){
   else if(!S.f.sold)g=carry()>0?{t:'木材を詰所の「買取所」の丸に運ぶとコインになる',tg:sell}:{t:'木に近づいて木材を集めよう',tg:tree};
   else if(hr&&P.ride!=='ladder')g={t:`高層ビル火災！ はしご車に乗って出動しよう（あと${Math.ceil(hr.t)}秒）`,tg:VEH.ladder,mode:'alert'};
   else if(hr)g={t:`高層ビルに近づくと、はしごで放水と救助ができる（あと${Math.ceil(hr.t)}秒）`,tg:{x:HRB.x,y:HRB.y},mode:'alert'};
+  else if(rain&&rain.hs.some(h=>h.person)){const h=nearest(rain.hs,P.x,P.y,o=>o.person);g=P.ride==='boat'?{t:'浸水した家のそばまでボートで行こう',tg:h,mode:'alert'}:{t:`岸部分団で浸水！ 救助ボートに乗って助けよう（あと${Math.ceil(rain.t)}秒）`,tg:BOAT,mode:'alert'}}
   else if(eq&&eq.hs.some(h=>h.person)){const h=nearest(eq.hs,P.x,P.y,o=>o.person);g={t:P.ride&&dist(P.x,P.y,h.x,h.y)<150?'車から降りて、倒れた家のそばに立とう':`地震！ 倒れた家のそばに立って、取り残された人を助けよう（あと${Math.ceil(eq.t)}秒）`,tg:h,mode:'alert'}}
   else if(trees.some(t=>t.fire)){const tr=nearest(trees,P.x,P.y,o=>o.fire);g={t:'山で林野火災！ 燃え広がる前に放水で消そう',tg:tr,mode:'alert'}}
   else if(em&&S.lv.amb&&P.ride!=='amb')g={t:`救急出動！ まず救急車に乗ろう（あと${Math.ceil(em.t)}秒）`,tg:VEH.amb,mode:'alert'};
@@ -410,7 +436,7 @@ const needSacks=g=>g.danger?clamp((tyWater()-Math.max(0,(S.lv.levee||0)-1))*2,2,
 const inZone=(x,y)=>zones.some(z=>dist(x,y,z.x,z.y)<z.r);
 const walkMul=()=>(inRiver(P.x,P.y)&&!onBridge(P.x,P.y)?.5:1)*(inZone(P.x,P.y)?.65:1);
 function startTyphoon(){
-  em=null;hr=null;if(eq){eq.hs.forEach(h=>{h.person=false;h.st='ok'});eq=null}
+  em=null;hr=null;if(rain)endRain(true);if(eq){eq.hs.forEach(h=>{h.person=false;h.st='ok'});eq=null}
   ty={ph:'warn',t:75,W:tyWater(),lvl:0,flooded:new Set(),rescued:0,checked:false,boat:false};
   for(const g of segs){g.sacks=0;g.danger=false}
   const as=activeSegs();as.slice().sort(()=>Math.random()-.5).slice(0,Math.min(as.length,2+Math.floor((S.tyN||0)/2),5)).forEach(g=>g.danger=true);ty.atRisk=houses.filter(h=>active(h)&&h.y>riverY(h.x)&&as.some(g=>dist(h.x,h.y,g.x,g.y)<260));
@@ -525,7 +551,8 @@ const TERM={x:40,y:130};
 const carts=RAILS.map(()=>({pos:0,st:'load',t:0,w:0,s:0}));
 const builtRails=()=>RAILS.slice(0,S.lv.rail||0);
 function nearestDeposit(x,y){const sell=PADMAP.sell;let b={x:sell.x,y:sell.y},bd=dist(x,y,sell.x,sell.y);
-  builtRails().forEach((r,i)=>{const d=dist(x,y,r.st.x,r.st.y);if(d<bd){bd=d;b={x:r.st.x,y:r.st.y,line:i}}});return b}
+  builtRails().forEach((r,i)=>{const d=dist(x,y,r.st.x,r.st.y);if(d<bd){bd=d;b={x:r.st.x,y:r.st.y,line:i}}});
+  for(const d of openD()){const dd=dist(x,y,d.sell.x,d.sell.y);if(dd<bd){bd=dd;b={x:d.sell.x,y:d.sell.y,dsell:d.id}}}return b}
 let railT=0;
 function updRail(dt){
   railT+=dt;
@@ -628,7 +655,7 @@ function updForest(dt){
   if(!S.lv.d_mt||ty)return;
   const burning=trees.filter(t=>t.fire);
   if(!burning.length){
-    if(ff){ff=false;const tot=ffSaved+ffLost,c=ffSaved*2*yl();pop('林野火災 鎮火！',`消し止めた木 ${ffSaved}/${tot}`);if(c)drop('coin',P.x,P.y,c);addMerit(ffLost===0?6:2);if(ffLost===0)setTimeout(()=>giveBox('林野火災を完全に消し止めた'),1500)}
+    if(ff){ff=false;const tot=ffSaved+ffLost,c=ffSaved*2*yl();pop('林野火災 鎮火！',`消し止めた木 ${ffSaved}/${tot}`);if(c)drop('coin',P.x,P.y,c);addMerit(ffLost===0?6:2);if(ffLost===0){support('d_mt');setTimeout(()=>giveBox('林野火災を完全に消し止めた'),1500)}}
     ffT-=dt;if(ffT<=0){ffT=100+Math.random()*40;startFF()}return}
   for(const tr of burning){tr.fb+=dt;tr.sp-=dt;
     if(Math.random()<dt*3)parts.push({k:'smoke',x:tr.x+(Math.random()-.5)*14,y:tr.y-46,r:6,life:1});
@@ -637,7 +664,7 @@ function updForest(dt){
 }
 function startFF(){const c=trees.filter(t=>t.mt&&t.st==='up'&&!t.fire);if(c.length<3)return;const a=c[Math.floor(Math.random()*c.length)];
   igniteTree(a);c.filter(o=>o!==a&&dist(o.x,o.y,a.x,a.y)<100).slice(0,2).forEach(igniteTree);ff=true;ffSaved=0;ffLost=0;
-  snd('boss');buzz([80,60,80]);dispatch('山の地区で林野火災！','燃え広がる前に放水で消そう。ポンプ車はイベントの火事には自動で行きません',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat([{k:'walk',label:'歩いて向かう'}]))}
+  snd('boss');buzz([80,60,80]);dispatch('山田分団から応援要請！ 林野火災','燃え広がる前に放水で消そう。ポンプ車はイベントの火事には自動で行きません',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat(busOpt('d_mt'),[{k:'walk',label:'歩いて向かう'}]))}
 function drawTreeFire(tr,t){const x=tr.x,y=tr.y-30,s=.9+tr.fb/50*.6;
   for(let i=0;i<7;i++){const a=t/110+i*1.6,ox=Math.sin(a)*7*s+(i-3)*4*s,oy=-Math.abs(Math.cos(a*1.3))*12*s;cx.fillStyle=i%2?'rgba(255,190,60,.92)':'rgba(240,90,40,.9)';cx.beginPath();cx.ellipse(x+ox,y+oy,6*s,12*s,0,0,7);cx.fill()}
   cx.fillStyle='rgba(255,240,170,.9)';cx.beginPath();cx.ellipse(x,y-4,4*s,8*s,0,0,7);cx.fill();
@@ -651,9 +678,9 @@ function updQuake(dt){
 }
 function startQuake(){const c=houses.filter(h=>h.res&&h.st==='ok').sort(()=>Math.random()-.5);if(c.length<6)return;
   const hs=c.slice(0,4);hs.forEach(h=>{h.st='collapsed';h.person=true;h.dig=0});c.slice(4,6).forEach(h=>{ignite(h);h.ev=true});
-  eq={t:120,shake:2.5,hs,saved:0};snd('boss');buzz([200,100,200]);dispatch('住宅街で地震！','倒れた家のそばに立つと救助できる（車からは降りてね）。火事も起きている',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat([{k:'walk',label:'歩いて向かう'}]))}
+  eq={t:120,shake:2.5,hs,saved:0};snd('boss');buzz([200,100,200]);dispatch('千里丘分団から応援要請！ 地震','倒れた家のそばに立つと救助できる（車からは降りてね）。火事も起きている',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat(busOpt('d_res'),[{k:'walk',label:'歩いて向かう'}]))}
 function endQuake(){const e=eq;eq=null;e.hs.forEach(h=>{h.person=false;h.st='ok';h.dig=0});
-  const all=e.saved>=e.hs.length;pop(all?'全員救助！':'地震の救助おわり',`助けた人 ${e.saved}/${e.hs.length}`);addMerit(all?6:1);if(all)setTimeout(()=>giveBox('地震で全員を助けた'),2400);
+  const all=e.saved>=e.hs.length;pop(all?'全員救助！':'地震の救助おわり',`助けた人 ${e.saved}/${e.hs.length}`);addMerit(all?6:1);if(all)support('d_res');if(all)setTimeout(()=>giveBox('地震で全員を助けた'),2400);
   setTimeout(()=>quiz('sonae','地震にそなえるクイズ','正解するとコインのごほうび',false,ok=>{if(ok)drop('coin',P.x,P.y,12*yl())}),1800)}
 function drawCollapsed(h,t){shadow(h.x,h.y+h.h/2,h.w*.55,7);cx.fillStyle='#b9a58a';cx.beginPath();cx.moveTo(h.x-h.w/2-4,h.y+h.h/2);cx.lineTo(h.x-h.w/3,h.y-6);cx.lineTo(h.x+h.w/4,h.y-14);cx.lineTo(h.x+h.w/2+6,h.y+h.h/2);cx.closePath();cx.fill();
   cx.fillStyle=h.roof;cx.save();cx.translate(h.x,h.y-6);cx.rotate(-.35);cx.fillRect(-h.w/2,-8,h.w,10);cx.restore();
@@ -673,12 +700,14 @@ function sohoStep(){sh.w=[26,22,17,13][sh.step];sh.z=20+Math.random()*60;sh.spee
 function sohoLoop(now){if(!sh||sh.done)return;const dt=Math.min(.05,(now-sh.last)/1000);sh.last=now;sh.pos+=sh.dir*sh.speed*dt;if(sh.pos>100){sh.pos=100;sh.dir=-1}if(sh.pos<0){sh.pos=0;sh.dir=1}
   const pin=document.getElementById('shPin');if(!pin)return;pin.style.left=sh.pos+'%';document.getElementById('shTime').textContent=((now-sh.t0)/1000).toFixed(1)+'秒';requestAnimationFrame(sohoLoop)}
 function sohoTap(){if(!sh||sh.done)return;const d=Math.abs(sh.pos-sh.z);let r,cls;
-  if(d<=sh.w/6){r='ピタッ！';cls='p';sh.pts+=3;snd('buy')}else if(d<=sh.w/2){r='OK';cls='';sh.pts+=2;snd('coin')}else{r='ミス';cls='m';snd('hurt')}
+  if(d<=sh.w/6){r='ピタッ！';cls='p';sh.pts+=3;snd('buy')}else if(d<=sh.w/2){r='OK';cls='';sh.pts+=2;sh.okc=(sh.okc||0)+1;snd('coin')}else{r='ミス';cls='m';sh.miss=(sh.miss||0)+1;snd('hurt')}
   sh.log.push(`<span class="${cls}">${r}</span>`);document.getElementById('shLog').innerHTML=sh.log.join('');
   sh.step++;if(sh.step<4){sohoStep();return}
-  sh.done=true;const sec=(performance.now()-sh.t0)/1000,score=sh.pts+(sec<8?2:sec<12?1:0),medal=score>=12?3:score>=9?2:score>=6?1:0;
+  sh.done=true;const sec=(performance.now()-sh.t0)/1000,tot=sec+(sh.okc||0)*1+(sh.miss||0)*4;
+  const board=RIVALS.map(n=>({n:n+'分団',t:5.5+Math.random()*7})).concat([{n:'吹三分団（きみ）',t:tot,me:true}]).sort((a,b)=>a.t-b.t);const place=board.findIndex(x=>x.me)+1;
+  const medal=place===1?3:place<=3?2:place<=6?1:0,score=place;
   const coin=[5,20,40,80][medal]*yl();addMerit([1,3,6,10][medal]);S.sohoCD=90;
-  setTimeout(()=>{modal(`<h2>操法大会 結果</h2><div class="medal r${medal||0}">${['参加賞','銅メダル','銀メダル','金メダル'][medal]}</div><p class="lead">タイム ${sec.toFixed(1)}秒・得点 ${score}</p><div class="shlog">${sh.log.join('')}</div><p class="note">ごほうび コイン${coin}枚${medal===3?'・装備箱':''}<br>次の大会は90秒後に出場できる</p><button class="btn" data-act="close">やったね！</button>`);
+  setTimeout(()=>{modal(`<h2>分団対抗 操法大会</h2><div class="medal r${medal||0}">${['参加賞','銅メダル','銀メダル','金メダル'][medal]}</div><p class="lead">分団対抗 ${place}位！（記録 ${tot.toFixed(1)}秒）</p><table class="rk">${board.map((x,i)=>`<tr class="${x.me?'me':''}"><td>${i+1}位</td><td>${x.n}</td><td>${x.t.toFixed(1)}秒</td></tr>`).join('')}</table><p class="note">記録＝かかった時間＋OKは1秒・ミスは4秒のペナルティ</p><div class="shlog">${sh.log.join('')}</div><p class="note">ごほうび コイン${coin}枚${medal===3?'・装備箱':''}<br>次の大会は90秒後に出場できる</p><button class="btn" data-act="close">やったね！</button>`);
     drop('coin',P.x,P.y,coin);if(medal===3)giveBox('操法大会 金メダル');snd(medal>=2?'buy':'new')},500)}
 function drawSoho(p,t){const on=dist(P.x,P.y,p.x,p.y)<34,cd=S.sohoCD>0;
   cx.fillStyle=on?'rgba(243,182,72,.5)':'rgba(255,255,255,.9)';cx.beginPath();cx.arc(p.x,p.y,32,0,7);cx.fill();
@@ -698,28 +727,28 @@ function board(k){const v=RIDES[k].v;P.ride=k;P.x=v.x;P.y=v.y;P.spray=null}
 function unboard(){const v=rideV();P.ride=null;let x=v.x,y=v.y+34;if(blocked(x,y)){x=v.x;y=v.y}P.x=x;P.y=y}
 function nearRide(){let b=null,bd=80;for(const k in RIDES){if(!RIDES[k].own())continue;const v=RIDES[k].v,d=dist(P.x,P.y,v.x,v.y);if(d<bd){bd=d;b=k}}return b}
 function dispatch(title,sub,opts){modal(`<h2>出動指令！</h2><p class="lead">${title}</p><p class="note">${sub}</p>${opts.map(o=>`<button class="btn ${o.k==='walk'?'sub':''}" data-act="go" data-v="${o.k}">${o.label}</button>`).join('')}`)}
-function goDispatch(k){closeModal();if(k!=='walk'&&RIDES[k]&&RIDES[k].own()){board(k);toast(`詰所から${RIDES[k].name}で出動！ 矢印の方へ向かおう`,'ok');snd('boss')}}
-const HRB={x:300,y:330,w:96,h:60,ht:170};
+function goDispatch(k){if(k.startsWith('bus:')){travel(k.slice(4));return}closeModal();if(k!=='walk'&&RIDES[k]&&RIDES[k].own()){board(k);toast(`詰所から${RIDES[k].name}で出動！ 矢印の方へ向かおう`,'ok');snd('boss')}}
+let HRB=BLD.find(b=>b.id==='hr');const HRBS=()=>BLD.filter(b=>b.id==='hr');
 let hr=null,hrT=100,hrW=0;
-const winXY=(c,r)=>({x:HRB.x-HRB.w/2+15+c*22,y:HRB.y+HRB.h/2-HRB.ht+16+r*21});
-function startHR(){const cols=[0,1,2,3].sort(()=>Math.random()-.5);
+const winXY=(c,r,b=HRB)=>({x:b.x-b.w/2+15+c*22,y:b.y+b.h/2-b.ht+16+r*21});
+function startHR(){const bs=HRBS().filter(b=>inArea(b.x,b.y,0));if(!bs.length)return;HRB=bs[Math.floor(Math.random()*bs.length)];const hd=distOf(HRB.x,HRB.y);const cols=[0,1,2,3].sort(()=>Math.random()-.5);
   hr={t:150,fires:[0,1,2].map(i=>({c:cols[i],r:i%2,hp:10})),people:[{c:cols[3],r:2,saved:false},{c:cols[0],r:3,saved:false}],rt:0,near:false,aim:null};
-  snd('boss');buzz([80,60,80]);dispatch('マンションで高層ビル火災！','高い階はホースが届かない。はしご車で出動して、放水と救助をしよう',[{k:'ladder',label:'はしご車で出動'},{k:'walk',label:'あとで行く'}])}
+  snd('boss');buzz([80,60,80]);dispatch(hd?`${hd.name}から応援要請！ 高層ビル火災`:'マンションで高層ビル火災！','高い階はホースが届かない。はしご車で出動して、放水と救助をしよう',[{k:'ladder',label:'はしご車で出動'},{k:'walk',label:'あとで行く'}])}
 function updHighrise(dt){
   if(!S.lv.ladder||ty)return;
-  if(!hr){hrT-=dt;if(hrT<=0){hrT=170+Math.random()*40;if(inArea(HRB.x,HRB.y,0))startHR()}return}
+  if(!hr){hrT-=dt;if(hrT<=0){hrT=170+Math.random()*40;startHR()}return}
   hr.t-=dt;const L=VEH.ladder;hr.near=P.ride==='ladder'&&dist(L.x,L.y,HRB.x,HRB.y+HRB.h/2)<200;hr.aim=null;
   if(hr.near){const f=hr.fires.find(f=>f.hp>0);if(f){f.hp-=(8+2*yl())*dt;hr.aim=winXY(f.c,f.r);if(f.hp<=0){addMerit(2);drop('coin',HRB.x,HRB.y+50,3);const w=winXY(f.c,f.r);float(w.x,w.y-10,'消えた！','#fff',13);snd('kill')}}
     const p=hr.people.find(p=>!p.saved);if(p){hr.rt+=dt;if(!hr.aim)hr.aim=winXY(p.c,p.r);if(hr.rt>2.2){hr.rt=0;p.saved=true;const w=winXY(p.c,p.r);addMerit(3);drop('coin',HRB.x,HRB.y+50,6+2*yl());float(w.x,w.y-10,'はしごで救助！','#fff',13);burst(w.x,w.y,'#3d93db',12);snd('buy')}}}
   else if(!P.ride&&dist(P.x,P.y,HRB.x,HRB.y)<220){hrW-=dt;if(hrW<=0){hrW=2.5;float(P.x,P.y-60,'高すぎて届かない！ はしご車で出動しよう','#ffd0c6',13)}}
   const fo=hr.fires.every(f=>f.hp<=0),ps=hr.people.every(p=>p.saved);
   if((fo&&ps)||hr.t<=0){const ok=fo&&ps,sv=hr.people.filter(p=>p.saved).length;hr=null;
-    pop(ok?'高層ビル火災 鎮火・全員救助！':'高層ビル火災 おわり',`助けた人 ${sv}/2`);if(ok){drop('coin',P.x,P.y,25*yl());addMerit(10);setTimeout(()=>giveBox('高層ビル火災で全員を救助'),1500)}else addMerit(2)}
+    pop(ok?'高層ビル火災 鎮火・全員救助！':'高層ビル火災 おわり',`助けた人 ${sv}/2`);if(ok){drop('coin',P.x,P.y,25*yl());addMerit(10);const hd=distOf(HRB.x,HRB.y);if(hd)support(hd.id);setTimeout(()=>giveBox('高層ビル火災で全員を救助'),1500)}else addMerit(2)}
 }
-function drawHighrise(t){const b=HRB;box(b.x,b.y,b.w,b.h,b.ht,'#dfe5ec','#9aa8ba');
+function drawHighrise(t,b){box(b.x,b.y,b.w,b.h,b.ht,'#dfe5ec','#9aa8ba');
   for(let r=0;r<7;r++)for(let c=0;c<4;c++){const w=winXY(c,r);cx.fillStyle='#8fb3d6';cx.fillRect(w.x-7,w.y-7,14,12);cx.fillStyle='rgba(255,255,255,.35)';cx.fillRect(w.x-7,w.y-7,14,3)}
   cx.fillStyle='#7d5b3f';cx.fillRect(b.x-12,b.y+b.h/2-24,24,24);label('マンション',b.x,b.y+b.h/2-b.ht-b.h/2-12,12,'#fff','#5d6b84');
-  if(!hr)return;
+  if(!hr||b!==HRB)return;
   for(const f of hr.fires){if(f.hp<=0)continue;const w=winXY(f.c,f.r);cx.fillStyle='#3a2a22';cx.fillRect(w.x-7,w.y-7,14,12);
     for(let i=0;i<4;i++){const a=t/100+i*1.9;cx.fillStyle=i%2?'rgba(255,190,60,.95)':'rgba(240,90,40,.9)';cx.beginPath();cx.ellipse(w.x+Math.sin(a)*4,w.y-8-Math.abs(Math.cos(a))*8,5,10,0,0,7);cx.fill()}
     if(Math.random()<.3)parts.push({k:'smoke',x:w.x,y:w.y-16,r:5,life:1})}
@@ -753,6 +782,48 @@ function drawEvacuee(e,t){drawPerson(e.x,e.y,e.face,e.kid?'#f3b648':'#8a7aa8',0,
 function drawLog(l,t){shadow(l.x,l.y+4,44,6);cx.save();cx.translate(l.x,l.y);if(l.vert)cx.rotate(Math.PI/2);
   cx.fillStyle='#7a5536';rr(-40,-8,80,14,6);cx.fill();cx.fillStyle='#d9a46e';cx.beginPath();cx.ellipse(40,-1,4,7,0,0,7);cx.fill();cx.fillStyle='#2f6b4f';cx.beginPath();cx.ellipse(-36,-6,16,10,0,0,7);cx.fill();cx.restore();
   if(l.hp<3){cx.fillStyle='rgba(27,39,64,.6)';rr(l.x-14,l.y-30,28,6,3);cx.fill();cx.fillStyle='#f3b648';cx.fillRect(l.x-13,l.y-29,26*l.hp/3,4)}}
+
+/* ===================== 分団・路線バス・ゲリラ豪雨・分団対抗 ===================== */
+const HOME_STOP={key:'home',name:HOME,x:175,y:205};
+const distOf=(x,y)=>Math.hypot(x,y)<radius()?null:DIST.find(d=>dist(x,y,d.x,d.y)<d.r)||null;
+const townName=()=>{const d=distOf(P.x,P.y);return d?d.name:HOME};
+function busOpt(did){const d=DIST.find(d=>d.id===did);return S.lv.bus&&d&&S.lv[did]?[{k:'bus:'+did,label:`バスで${d.name}へ`}]:[]}
+function support(did){const d=DIST.find(d=>d.id===did);if(!d)return;addMerit(3);float(P.x,P.y-80,`${d.name}「応援ありがとう！」`,'#ffe08a',14)}
+let busAway=true,busFx=null;
+const stops=()=>S.lv.bus?[HOME_STOP,...openD().map(d=>({key:d.id,name:d.name,x:d.stop.x,y:d.stop.y}))]:[];
+function updBus(dt){if(busFx){busFx.t+=dt;if(busFx.t>2.5)busFx=null}
+  if(!S.lv.bus||P.ride)return;const st=stops(),s=st.find(s=>dist(P.x,P.y,s.x,s.y)<30);
+  if(!s){if(!st.some(q=>dist(P.x,P.y,q.x,q.y)<52))busAway=true;return}
+  if(!busAway)return;busAway=false;const others=st.filter(o=>o.key!==s.key);if(!others.length)return;
+  modal(`<h2>路線バス</h2><p class="lead">${s.name} バス停<br>どこへ行く？</p>${others.map(o=>`<button class="btn" data-act="bus" data-v="${o.key}">${o.name}</button>`).join('')}<button class="btn sub" data-act="close">やめる</button>`)}
+function travel(key){closeModal();if(P.ride)unboard();const dst=key==='home'?HOME_STOP:(()=>{const d=DIST.find(d=>d.id===key);return{name:d.name,x:d.stop.x,y:d.stop.y}})();
+  P.x=dst.x;P.y=dst.y+40;cam.x=P.x;cam.y=P.y;busAway=false;busFx={x:dst.x,y:dst.y,t:0};toast(`路線バスで${dst.name}に着いた`,'ok');snd('new')}
+function drawBusStops(t){
+  for(const d of openD()){const s=d.sell,on=dist(P.x,P.y,s.x,s.y)<34;cx.fillStyle=on?'rgba(61,147,219,.35)':'rgba(255,255,255,.85)';cx.beginPath();cx.arc(s.x,s.y,30,0,7);cx.fill();
+    cx.strokeStyle='#2f78b8';cx.lineWidth=3;cx.setLineDash([7,5]);cx.beginPath();cx.arc(s.x,s.y,30,0,7);cx.stroke();cx.setLineDash([]);icon('wood',s.x-11,s.y-5,.8);icon('coin',s.x+12,s.y,.9);label('買取所',s.x,s.y+44,12,'#fff','#2f78b8')}
+  for(const s of stops()){cx.strokeStyle='#2fa86b';cx.lineWidth=2.5;cx.setLineDash([6,5]);cx.beginPath();cx.arc(s.x,s.y,28,0,7);cx.stroke();cx.setLineDash([]);
+    cx.fillStyle='#5d6b84';cx.fillRect(s.x-2,s.y-44,4,40);cx.fillStyle='#2fa86b';cx.beginPath();cx.arc(s.x,s.y-48,11,0,7);cx.fill();icon('bus',s.x,s.y-48,.55);label('バス停',s.x,s.y+40,11,'#fff','#2fa86b')}
+  if(busFx){const x=busFx.x-40+busFx.t*160,y=busFx.y-6;cx.globalAlpha=clamp(2.5-busFx.t,0,1);drawBus(x,y);cx.globalAlpha=1}}
+function drawBus(x,y){shadow(x,y+3,44,7);cx.fillStyle='#23262e';cx.beginPath();cx.arc(x-24,y,7,0,7);cx.arc(x+24,y,7,0,7);cx.fill();cx.fillStyle='#f6f7f9';rr(x-44,y-36,88,32,6);cx.fill();cx.fillStyle='#2fa86b';cx.fillRect(x-44,y-16,88,7);cx.fillStyle='#bfe0f5';for(let i=0;i<5;i++)cx.fillRect(x-38+i*16,y-31,12,10)}
+function drawDistBld(b,t){const d=b.d;box(b.x,b.y,b.w,b.h,b.ht,'#f3ede2','#e5432a');cx.fillStyle='#7d5b3f';cx.fillRect(b.x-14,b.y+b.h/2-24,28,24);label(d.name,b.x,b.y-b.h/2-b.ht+18,13,'#fff',null,'#b8321e');label('詰所',b.x,b.y+b.h/2-b.ht/2-4,10,'#22355c')}
+/* ゲリラ豪雨（岸部分団） */
+let rainT=120;
+function startRain(){const c=houses.filter(h=>h.ds&&h.st==='ok').sort(()=>Math.random()-.5).slice(0,3);if(c.length<2)return;
+  const zs=c.map(h=>({x:h.x,y:h.y,r:10,max:115,grow:true,ev:true}));zones.push(...zs);c.forEach(h=>{h.st='flood';h.person=true});
+  const d=DIST.find(d=>d.id==='d_s'),z=zs[0],a=Math.atan2(d.stop.y-z.y,d.stop.x-z.x);BOAT.x=z.x+Math.cos(a)*(z.max*.85);BOAT.y=z.y+Math.sin(a)*(z.max*.85);for(const q of [d.stop,d.sell]){const dd=dist(BOAT.x,BOAT.y,q.x,q.y);if(dd<95){const k=(95-dd)/(dd||1);BOAT.x+=(BOAT.x-q.x)*k;BOAT.y+=(BOAT.y-q.y)*k}}
+  rain={t:120,hs:c,zones:zs};snd('boss');buzz([80,60,80]);
+  dispatch('岸部分団から応援要請！ ゲリラ豪雨で浸水','家に取り残された人がいる。救助ボートに乗って助けよう',[...busOpt('d_s'),{k:'walk',label:'歩いて向かう'}])}
+function updRain(dt){if(!S.lv.d_s||ty)return;
+  if(!rain){rainT-=dt;if(rainT<=0){rainT=150+Math.random()*40;startRain()}return}
+  rain.t-=dt;for(const z of rain.zones){if(z.grow){z.r=Math.min(z.max,z.r+40*dt);if(z.r>=z.max)z.grow=false}if(P.ride==='truck'&&dist(T.x,T.y,z.x,z.y)<z.r+70)z.r=Math.max(40,z.r-(16+8*S.lv.truck)*dt)}
+  if(!rain.hs.some(h=>h.person)||rain.t<=0)endRain()}
+function endRain(silent){const r=rain;rain=null;if(P.ride==='boat')unboard();const sv=r.hs.filter(h=>!h.person).length;r.hs.forEach(h=>{h.person=false;h.st='ok'});zones=zones.filter(z=>!r.zones.includes(z));
+  if(silent)return;const all=sv===r.hs.length;pop(all?'浸水救助 完了！':'浸水救助 おわり',`助けた人 ${sv}/${r.hs.length}`);addMerit(all?6:1);if(all){support('d_s');setTimeout(()=>giveBox('岸部分団の浸水救助'),1500)}}
+const LAKEc=()=>LAKE;
+function drawLake(){if(dist(cam.x,cam.y,LAKE.x,LAKE.y)>1400)return;cx.fillStyle='#ddd2bb';cx.beginPath();cx.ellipse(LAKE.x,LAKE.y,LAKE.rx+12,LAKE.ry+10,0,0,7);cx.fill();cx.fillStyle='#8cc1ea';cx.beginPath();cx.ellipse(LAKE.x,LAKE.y,LAKE.rx,LAKE.ry,0,0,7);cx.fill();
+  cx.strokeStyle='rgba(255,255,255,.5)';cx.lineWidth=2;cx.beginPath();for(let i=0;i<6;i++){const x=LAKE.x-80+i*30,y=LAKE.y-20+(i%3)*18;cx.moveTo(x,y);cx.lineTo(x+16,y)}cx.stroke()}
+/* 分団対抗 操法大会 */
+const RIVALS=['吹一','吹二','千一','千二','豊津','岸部','山田','千里丘'];
 
 /* ===================== 更新 ===================== */
 function moveBody(o,ix,iy,sp,dt,r){
@@ -817,10 +888,10 @@ function update(dt){
   comboT-=dt;if(comboT<=0)combo=0;
 
   // 売る
-  const sp=PADMAP.sell;sellT+=dt;
+  const sp=[PADMAP.sell,...openD().map(d=>d.sell)].find(q=>dist(P.x,P.y,q.x,q.y)<34)||PADMAP.sell;sellT+=dt;
   if(sellT>.045){sellT=0;if(dist(P.x,P.y,sp.x,sp.y)<34&&carry()>0){
     const k=S.stone>0?'stone':'wood';S[k]--;const v=(k==='stone'?3:1)*MULT[S.lv.price];S.frac+=v;const w=Math.floor(S.frac);S.frac-=w;S.coins+=w;S.earned+=w;
-    fly(k,P.x,P.y-34,0,10);if(w)float(sp.x+(Math.random()-.5)*30,sp.y-40,'+'+w,'#f3b648',15);S.f.sold=true;snd('coin');bump('pCoin')}}
+    fly(k,P.x,P.y-34,sp.x,sp.y-60);if(w)float(sp.x+(Math.random()-.5)*30,sp.y-40,'+'+w,'#f3b648',15);S.f.sold=true;snd('coin');bump('pCoin')}}
 
   // 団員のコイン
   pileT+=dt;if(pileT>.03){pileT=0;if(S.pile>=1&&dist(P.x,P.y,PILE.x,PILE.y)<36){const n=Math.max(1,Math.floor(S.pile/25));const w=Math.min(n,Math.floor(S.pile));S.pile-=w;S.coins+=w;fly('coin',PILE.x,PILE.y-10,P.x,P.y-30);snd('coin');bump('pCoin')}}
@@ -839,7 +910,7 @@ function update(dt){
   if(S.lv.truck>=1){
     if(P.ride!=='truck'){
       const tg=nearest(mons.filter(m=>!m.dead).concat(houses.filter(h=>h.st==='fire'&&active(h)&&!h.ev)),T.x,T.y);
-      let tx=PARK.x,ty=PARK.y,stop=6;if(tg){tx=tg.x;ty=tg.y+20;stop=truckRange()*.7}else if(zones.length){const z=nearest(zones,T.x,T.y);tx=z.x;ty=z.y+10;stop=Math.max(20,z.r*.35)}
+      let tx=PARK.x,ty=PARK.y,stop=6;if(tg){tx=tg.x;ty=tg.y+20;stop=truckRange()*.7}else if(zones.some(z=>!z.ev)){const z=nearest(zones.filter(z=>!z.ev),T.x,T.y);tx=z.x;ty=z.y+10;stop=Math.max(20,z.r*.35)}
       const d=dist(T.x,T.y,tx,ty);T.moving=d>stop;
       if(T.moving){const s=truckSpeed();T.x+=(tx-T.x)/d*s*dt;T.y+=(ty-T.y)/d*s*dt;if(Math.abs(tx-T.x)>4)T.face=tx>T.x?1:-1}
     }
@@ -866,7 +937,7 @@ function update(dt){
       if(h.burn>45){h.st='ruin';h.t=40;float(h.x,h.y-40,'焼けてしまった…','#ffd0c6',13)}}
     else if(h.st==='ruin'){h.t-=dt;if(h.t<=0)h.st='ok'}}
 
-  updTyphoon(dt);updRail(dt);updEmerg(dt);updVehicles(dt);updForest(dt);updQuake(dt);updSoho(dt);updHighrise(dt);updLogs(dt);updBoat(dt);
+  updTyphoon(dt);updRail(dt);updEmerg(dt);updVehicles(dt);updForest(dt);updQuake(dt);updSoho(dt);updHighrise(dt);updLogs(dt);updBoat(dt);updBus(dt);updRain(dt);
   for(const w of workers)updWorker(w,dt);
 
   // 演出
@@ -925,17 +996,21 @@ function icon(k,x,y,s){cx.save();cx.translate(x,y);cx.scale(s,s);
   else if(k==='ladder'){icon('truck',0,2,1);cx.strokeStyle='#9aa3b2';cx.lineWidth=1.5;cx.beginPath();cx.moveTo(-13,-6);cx.lineTo(10,-13);cx.moveTo(-13,-3);cx.lineTo(10,-10);cx.stroke()}
   else if(k==='mt'){cx.fillStyle='#5f7d6a';cx.beginPath();cx.moveTo(-13,9);cx.lineTo(-3,-9);cx.lineTo(7,9);cx.closePath();cx.fill();cx.fillStyle='#3f8a64';cx.beginPath();cx.moveTo(-2,9);cx.lineTo(6,-4);cx.lineTo(14,9);cx.closePath();cx.fill();cx.fillStyle='#fff';cx.beginPath();cx.moveTo(-6,-3);cx.lineTo(-3,-9);cx.lineTo(0,-3);cx.closePath();cx.fill()}
   else if(k==='town'){for(const [ox,c] of [[-7,'#b0715f'],[6,'#6f86ad']]){cx.fillStyle='#f1ebe0';cx.fillRect(ox-6,-2,12,10);cx.fillStyle=c;cx.beginPath();cx.moveTo(ox-8,-1);cx.lineTo(ox,-9);cx.lineTo(ox+8,-1);cx.closePath();cx.fill()}}
+  else if(k==='bus'){cx.fillStyle='#f6f7f9';rr(-13,-9,26,15,3);cx.fill();cx.fillStyle='#2fa86b';cx.fillRect(-13,-1,26,3);cx.fillStyle='#bfe0f5';cx.fillRect(-10,-7,6,4);cx.fillRect(-2,-7,6,4);cx.fillRect(6,-7,5,4);cx.fillStyle='#23262e';cx.beginPath();cx.arc(-7,7,3,0,7);cx.arc(7,7,3,0,7);cx.fill()}
+  else if(k==='lake'){cx.fillStyle='#8cc1ea';cx.beginPath();cx.ellipse(0,3,13,7,0,0,7);cx.fill();cx.fillStyle='#f1ebe0';cx.fillRect(-4,-10,9,8);cx.fillStyle='#b0715f';cx.beginPath();cx.moveTo(-6,-9);cx.lineTo(0,-14);cx.lineTo(7,-9);cx.closePath();cx.fill()}
+  else if(k==='city'){for(const [ox,h] of [[-7,18],[2,24],[10,14]]){cx.fillStyle='#9aa8ba';cx.fillRect(ox-4,10-h,8,h);cx.fillStyle='#bfe0f5';for(let y=12-h;y<8;y+=5)cx.fillRect(ox-2,y,4,2)}}
   else if(k==='price'){icon('coin',-3,2,.9);cx.fillStyle='#2fa86b';cx.beginPath();cx.moveTo(8,-11);cx.lineTo(14,-3);cx.lineTo(10,-3);cx.lineTo(10,4);cx.lineTo(6,4);cx.lineTo(6,-3);cx.lineTo(2,-3);cx.closePath();cx.fill()}
   cx.restore()}
 
 function drawGround(){
   setScreen();cx.fillStyle='#e3eaf1';cx.fillRect(0,0,W,H);setWorld();
   const R=radius();cx.fillStyle='#f5f8fb';cx.beginPath();cx.arc(0,0,R,0,7);cx.fill();
-  for(const d of openD()){cx.fillStyle=d.id==='d_mt'?'#eef3ee':'#f5f8fb';cx.beginPath();cx.arc(d.x,d.y,d.r,0,7);cx.fill()}
+  for(const d of openD()){cx.fillStyle=d.col;cx.beginPath();cx.arc(d.x,d.y,d.r,0,7);cx.fill()}
   cx.fillStyle='#dde5ed';cx.beginPath();cx.ellipse(0,40,300,215,0,0,7);cx.fill();
   cx.fillStyle='#cfd8e2';cx.fillRect(-R,128,R*2,24);cx.fillRect(-12,-R,24,R*2);
   cx.fillStyle='#e5ebf1';for(let x=-R;x<R;x+=40)cx.fillRect(x,139,20,2);
-  for(const d of openD()){cx.fillStyle='#cfd8e2';cx.fillRect(d.x-d.r,128,d.r*2,24)}
+  for(const d of openD()){cx.fillStyle='#cfd8e2';if(d.id==='d_s')cx.fillRect(-12,1000,24,d.by-30-1000);else if(d.id==='d_n')cx.fillRect(-12,d.by+30,24,-1000-(d.by+30));else cx.fillRect(d.x-d.r,128,d.r*2,24)}
+  if(S.lv.d_s)drawLake();
 }
 let fogC=null,fogX=null;
 function drawFog(){
@@ -983,7 +1058,8 @@ function drawBld(b,t){
   else if(b.id==='shop'){box(b.x,b.y,b.w,b.h,b.ht,'#eef1f5','#3c5486');for(let i=0;i<5;i++){cx.fillStyle=i%2?'#fff':'#e5432a';cx.fillRect(b.x-b.w/2+i*b.w/5,b.y+b.h/2-b.ht,b.w/5,8)}label('装備屋',b.x,b.y-b.h/2-b.ht+18,14,'#fff')}
   else if(b.id==='garage'){box(b.x,b.y,b.w,b.h,b.ht,'#d7dee6','#5b6f8f');cx.fillStyle='#a3b0c1';cx.fillRect(b.x-b.w/2+12,b.y+b.h/2-b.ht+5,b.w-24,b.ht-5);for(let i=0;i<4;i++){cx.fillStyle='rgba(0,0,0,.1)';cx.fillRect(b.x-b.w/2+12,b.y+b.h/2-b.ht+9+i*7,b.w-24,1.5)}label('車庫',b.x,b.y-b.h/2-b.ht+18,14,'#fff')}
   else if(b.id==='tower')drawTower(t);
-  else if(b.id==='hr')drawHighrise(t);
+  else if(b.id==='hr')drawHighrise(t,b);
+  else if(b.id==='dt')drawDistBld(b,t);
 }
 function drawTower(t){
   const lv=yl(),x=0,by=-114,th=58+lv*16,tw=8,bw=22,top=by-th;shadow(x+6,by,30,8);
@@ -1037,7 +1113,7 @@ function drawLevees(t){
 }
 function drawZones(t){for(const z of zones){const g=cx.createRadialGradient(z.x,z.y,z.r*.2,z.x,z.y,z.r);g.addColorStop(0,'rgba(60,120,190,.7)');g.addColorStop(1,'rgba(60,120,190,.3)');cx.fillStyle=g;cx.beginPath();cx.arc(z.x,z.y,z.r,0,7);cx.fill();
   cx.strokeStyle='rgba(255,255,255,.45)';cx.lineWidth=2;for(let k=0;k<3;k++){const r=z.r*.25+((t/25+k*z.r*.25)%(z.r*.75));cx.beginPath();cx.arc(z.x,z.y,r,0,7);cx.stroke()}}}
-function drawWeather(t){if(!ty)return;let a=ty.ph==='warn'?.24*(1-ty.t/60):ty.ph==='storm'?.34:.12*(ty.t/50);
+function drawWeather(t){if(!ty){if(rain&&distOf(P.x,P.y)&&distOf(P.x,P.y).id==='d_s'){cx.fillStyle='rgba(20,32,58,.18)';cx.fillRect(0,0,W,H);cx.strokeStyle='rgba(205,222,245,.55)';cx.lineWidth=1.5;cx.beginPath();for(let i=0;i<110;i++){const x=((i*73.3+t*.35)%(W+120))-60,y=((i*151.7+t*1.1)%(H+60))-30;cx.moveTo(x,y);cx.lineTo(x-9,y+20)}cx.stroke()}return}let a=ty.ph==='warn'?.24*(1-ty.t/60):ty.ph==='storm'?.34:.12*(ty.t/50);
   cx.fillStyle=`rgba(20,32,58,${a})`;cx.fillRect(0,0,W,H);
   if(ty.ph==='storm'||(ty.ph==='warn'&&ty.t<15)){const n=ty.ph==='storm'?140:45;cx.strokeStyle='rgba(205,222,245,.6)';cx.lineWidth=1.5;cx.beginPath();
     for(let i=0;i<n;i++){const x=((i*73.3+t*.35)%(W+120))-60,y=((i*151.7+t*1.1)%(H+60))-30;cx.moveTo(x,y);cx.lineTo(x-9,y+20)}cx.stroke()}}
@@ -1097,7 +1173,7 @@ function drawTruck(x,y,f,t,lit,ridden){
 function drawDrop(d){const y=d.y-d.z;cx.fillStyle='rgba(40,60,90,.15)';cx.beginPath();cx.ellipse(d.x,d.y+3,6,2.5,0,0,7);cx.fill();icon(d.k,d.x,y-4,d.k==='wood'?.75:.8)}
 
 function draw(t){
-  drawGround();drawRiver(t);drawZones(t);drawLevees(t);drawRails(t);drawShelter(t);
+  drawGround();drawRiver(t);drawZones(t);drawLevees(t);drawRails(t);drawShelter(t);drawBusStops(t);
   const s=sc(),m=80/s;
   // 放水の範囲
   if(!P.ride){cx.strokeStyle='rgba(61,147,219,.18)';cx.lineWidth=2;cx.beginPath();cx.arc(P.x,P.y,hoseRange(),0,7);cx.stroke()}
@@ -1148,6 +1224,7 @@ function draw(t){
 /* ===================== HUD ===================== */
 let hudKey='';
 function hud(){
+  const tn=townName(),te=document.getElementById('hTown');if(te.textContent!==tn)te.textContent=tn;
   const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand,maxHp(),S.rank,S.merit].join(',');if(k!==hudKey){hudKey=k;
     document.getElementById('hCoin').textContent=S.coins;
     document.getElementById('hRank').textContent=RANKS[S.rank];document.getElementById('hRankBar').style.width=(rankProg()*100)+'%';
@@ -1177,20 +1254,21 @@ const LOOP=`<ul class="loop">
 <li><span class="n">3</span><span>詰所の<b>買取所</b>に運ぶ → <b>コイン</b>に変わる</span></li>
 <li><span class="n">4</span><span>光る丸に立つ → コインで<b>斧・ホース・ポンプ車</b>を買って強くなる</span></li>
 <li><span class="n">5</span><span><b>出動指令</b>が出たら、合う車両に乗って出動！ 火事はポンプ車か歩きで、救急は救急車、高層ビル火災ははしご車で</span></li>
-<li><span class="n">6</span><span>班長になると<b>操法大会</b>に出場できる。部長からは<b>新しい地区</b>も開ける</span></li>
+<li><span class="n">6</span><span>班長になると<b>分団対抗の操法大会</b>に出場できる。部長からは<b>新しい分団</b>を結成でき、<b>路線バス</b>で行き来できる</span></li>
 <li><span class="n">7</span><span><b>台風</b>が来る前に、川の堤防に<b>土嚢</b>を積んで町を守ろう</span></li>
 </ul>`;
-function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p>`)}
+function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>きみは吹三分団の団員だ</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
 function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
 function rankHtml(){const nx=S.rank<6?`次の「${RANKS[S.rank+1]}」まで 功績あと${RANK_REQ[S.rank+1]-S.merit}`:'最高の階級！';return `<p class="lead">階級：${RANKS[S.rank]}（功績 ${S.merit}）</p><div class="prog"><i style="width:${rankProg()*100}%"></i></div><p class="note">${nx}<br>火を消す・ヒノコを倒す・人を助ける・台風から町を守ると功績がたまる</p>`}
-function menu(){modal(`<h2>メニュー</h2>${rankHtml()}${eqHtml()}${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button>`)}
+function menu(){modal(`<h2>メニュー</h2>${rankHtml()}${eqHtml()}${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;audio();
   if(a==='start'){S.started=true;save();closeModal()}
   else if(a==='close')closeModal();
   else if(a==='qa')quizAnswer(+b.dataset.i);
   else if(a==='shgo')sohoStart();
   else if(a==='go')goDispatch(b.dataset.v);
+  else if(a==='bus')travel(b.dataset.v);
   else if(a==='shtap')sohoTap();
   else if(a==='qhint')quizHint();
   else if(a==='qdone')quizDone();
@@ -1201,7 +1279,7 @@ document.getElementById('menuBtn').addEventListener('click',()=>{audio();menu()}
 /* ===================== ループ ===================== */
 let last=performance.now();
 function resetWorld(){genWorld();ty=null;evac=[];logs=[];em=null;emT=40;eq=null;hr=null;hrT=100;ff=false;ffT=80;eqT=110;sh=null;for(const k of VEHS){VEH[k].x=PADMAP[k].x;VEH[k].y=PADMAP[k].y}zones=[];for(const g of segs)g.sacks=0;mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=maxHp();P.ride=null;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
-  for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);moved=false}
+  for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);for(const d of DIST){const n=(S.dcrew||{})[d.id]||0;for(let i=0;i<n;i++)addWorker(d.x+i*14,d.y+150)}rain=null;rainT=120;busFx=null;moved=false}
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
   if(!paused&&!document.hidden)update(dt);
@@ -1211,7 +1289,7 @@ function loop(t){
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
-  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res'])if(S.lv[k]==null)S.lv[k]=0;if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
+  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;for(const k of ['amb','tank','ladder','d_mt','d_res','d_s','d_n','bus'])if(S.lv[k]==null)S.lv[k]=0;if(!S.dcrew)S.dcrew={};if(S.sohoCD==null)S.sohoCD=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
   resize();addEventListener('resize',resize);resetWorld();
   if(!S.started)intro();else if(S.earned>0)cont();
   setInterval(save,3000);addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save();last=performance.now()});
