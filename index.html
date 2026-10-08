@@ -53,6 +53,23 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 #goal.alert{background:var(--shu)} #goal.alert .tag{background:#fff;color:var(--shu)}
 #ride{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);transform:translateX(-50%);z-index:6;border:0;border-radius:16px;background:var(--shu);color:#fff;font-family:var(--display);font-size:17px;padding:14px 26px;box-shadow:0 6px 18px rgba(229,67,42,.45),inset 0 -4px 0 rgba(0,0,0,.18);cursor:pointer;white-space:nowrap}
 #ride.off{background:var(--navy);box-shadow:0 6px 18px rgba(34,53,92,.4),inset 0 -4px 0 rgba(0,0,0,.18)}
+.rrow{max-width:560px;width:100%;margin:0 auto;display:flex;align-items:center;gap:8px}
+.rank{display:flex;align-items:center;gap:6px;background:var(--panel);border-radius:999px;padding:3px 10px 3px 3px;box-shadow:0 2px 8px rgba(27,39,64,.16)}
+.rank .badge{font-family:var(--display);font-size:11px;color:#fff;background:var(--navy);border-radius:999px;padding:3px 8px;white-space:nowrap}
+.rbar{width:70px;height:7px;border-radius:4px;background:#d5dfe9;overflow:hidden}
+.rbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--kin),var(--shu))}
+.medal{width:104px;height:104px;margin:0 auto;border-radius:50%;display:grid;place-items:center;text-align:center;font-family:var(--display);font-size:17px;line-height:1.25;color:#fff;box-shadow:inset 0 -6px 0 rgba(0,0,0,.2),0 6px 18px rgba(0,0,0,.18);-webkit-text-stroke:.5px rgba(0,0,0,.25)}
+.medal.r0{background:radial-gradient(circle at 35% 30%,#c9a27a,#7a4f2a)}
+.medal.r1{background:radial-gradient(circle at 35% 30%,#ebbd8e,#9c5e28)}
+.medal.r2{background:radial-gradient(circle at 35% 30%,#ffffff,#8c97a8);color:#22355c}
+.medal.r3{background:radial-gradient(circle at 35% 30%,#fff3b0,#d19a12);color:#5a3a00}
+.medal.shake{animation:shk .7s ease-in-out}
+@keyframes shk{0%,100%{transform:rotate(0)}20%{transform:rotate(-12deg) scale(1.05)}40%{transform:rotate(10deg)}60%{transform:rotate(-8deg) scale(1.08)}80%{transform:rotate(6deg)}}
+.eqgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.eqi{border-radius:12px;padding:8px 10px;background:#f2f5f9;font-size:12px;line-height:1.4}
+.eqi b{display:block;font-family:var(--display);font-weight:400;font-size:13px}
+.eqi.r1{background:#f6e3cf}.eqi.r2{background:#e6ebf2}.eqi.r3{background:#fff1c2}
+.prog{height:10px;border-radius:5px;background:#e3e9f0;overflow:hidden}.prog i{display:block;height:100%;background:linear-gradient(90deg,var(--kin),var(--shu))}
 #zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
 #zoom button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel);font-family:var(--display);font-size:22px;line-height:1;color:var(--ink);box-shadow:0 2px 8px rgba(27,39,64,.2);cursor:pointer}
 #zoom button:disabled{opacity:.4;cursor:default}
@@ -96,6 +113,7 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
     <button class="rbtn" id="muteBtn" aria-label="音のオンオフ">音 ON</button>
     <button class="rbtn" id="menuBtn">MENU</button>
   </div>
+  <div class="rrow"><div class="rank"><span class="badge" id="hRank">団員</span><span class="rbar"><i id="hRankBar"></i></span></div></div>
   <div id="goal"><span class="tag" id="goalTag">目標</span><p id="goalText"></p></div>
 </div>
 <div id="zoom"><button id="zIn" aria-label="ズームイン">＋</button><button id="zOut" aria-label="ズームアウト">－</button></div>
@@ -119,6 +137,8 @@ const UP={
   yagura:{name:'火の見やぐら',icon:'tower',cost:[null,50,150,400,1000],fx:l=>'町が広がった！ 木もヒノコも増える'},
   price:{name:'買取アップ',icon:'price',cost:[null,30,90,250],fx:l=>`売ったときのコインが${MULT[l]}倍！`},
   levee:{name:'堤防',icon:'levee',cost:[60,160,380],fx:l=>`堤防が${l}段高くなった！ 土嚢が少なくても町を守れる`},
+  rail:{name:'トロッコ',icon:'cart',cost:[80,220,520],fx:l=>`${['','南','西','東'][l]}の森にトロッコ駅ができた！ 木を置くと自動で売ってくれる`},
+  box:{name:'装備箱',icon:'chest',fx:()=>''},
   crew:{name:'団員',icon:'crew',fx:()=>'木を切って売ってくれる。コインは買取所の横にたまる'},
 };
 const PADS=[
@@ -131,6 +151,8 @@ const PADS=[
   {id:'yagura',x:100,y:-118,unlock:()=>S.lv.truck>=1},
   {id:'price',x:-98,y:168,unlock:()=>S.lv.yagura>=2},
   {id:'levee',x:-290,y:-150,unlock:()=>(S.tyN||0)>=1},
+  {id:'box',x:-300,y:168,unlock:()=>S.lv.yagura>=2||(S.rank||0)>=1},
+  {id:'rail',get x(){return RAILS[Math.min(S.lv.rail||0,2)].pad.x},get y(){return RAILS[Math.min(S.lv.rail||0,2)].pad.y},unlock:()=>(S.lv.rail||0)<3&&S.lv.yagura>=RAILS[Math.min(S.lv.rail||0,2)].need},
 ];
 const PADMAP=Object.fromEntries(PADS.map(p=>[p.id,p]));
 const BLD=[
@@ -144,7 +166,7 @@ const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
 
 /* ===================== 状態 ===================== */
 let S;
-function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null}}
+function fresh(){return{v:3,started:false,coins:0,frac:0,wood:0,stone:0,lv:{axe:1,bag:1,hose:1,truck:0,yagura:1,price:1,levee:0,rail:0},crew:0,paid:{},f:{},earned:0,pile:0,seen:['sell'],muted:false,uz:.8,px:null,py:null,sand:0,tyN:0,tyT:null,merit:0,rank:0,eq:{helmet:0,coat:0,boots:0,nozzle:0},boxN:0,boxes:0,rs:[{w:0,s:0},{w:0,s:0},{w:0,s:0}]}}
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY));return s&&s.v===3?s:null}catch(e){return null}}
 function save(){if(S){if(!P.ride){S.px=Math.round(P.x);S.py=Math.round(P.y)}}try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){return false}}
 
@@ -153,19 +175,21 @@ const cap=()=>CAPS[S.lv.bag];
 const carry=()=>S.wood+S.stone;
 const chopInt=()=>.32*Math.pow(.75,S.lv.axe-1);
 const woodPer=()=>1+S.lv.axe;
-const hosePow=()=>4*Math.pow(1.6,S.lv.hose-1);
-const hoseRange=()=>86+12*S.lv.hose;
+const hosePow=()=>4*Math.pow(1.6,S.lv.hose-1)*(1+[0,.15,.3,.5][S.eq.coat]);
+const hoseRange=()=>86+12*S.lv.hose+[0,10,20,35][S.eq.nozzle];
+const maxHp=()=>5+S.eq.helmet;
+const spdMul=()=>1+[0,.08,.15,.25][S.eq.boots];
 const truckPow=()=>10*Math.pow(1.7,S.lv.truck-1);
 const truckRange=()=>150+20*S.lv.truck;
 const truckSpeed=()=>150+25*S.lv.truck;
 const crewMax=()=>1+2*S.lv.yagura;
 const crewCost=()=>Math.round(15*Math.pow(1.6,S.crew));
 const yl=()=>S.lv.yagura;
-function padCost(id){if(id==='crew')return S.crew<crewMax()?crewCost():null;const c=UP[id].cost[S.lv[id]];return c==null?null:c}
+function padCost(id){if(id==='box')return Math.min(500,60+30*(S.boxN||0));if(id==='crew')return S.crew<crewMax()?crewCost():null;const c=UP[id].cost[S.lv[id]];return c==null?null:c}
 function padRem(id){const c=padCost(id);return c==null?null:c-(S.paid[id]||0)}
 const unlocked=p=>!p.unlock||p.unlock();
 const padName=id=>UP[id].name;
-function padLvText(id){if(id==='crew')return `${S.crew+1}人目`;if(id==='truck'&&S.lv.truck===0)return '';return 'Lv'+(S.lv[id]+1)}
+function padLvText(id){if(id==='crew')return `${S.crew+1}人目`;if(id==='box')return '';if(id==='rail')return ['南の駅','西の駅','東の駅'][S.lv.rail]||'';if(id==='truck'&&S.lv.truck===0)return '';return 'Lv'+(S.lv[id]+1)}
 
 /* ===================== 実行時 ===================== */
 const P={x:START.x,y:START.y,face:1,moving:false,hp:5,hurt:0,since:9,ride:false,chopT:0,spray:null,full:0};
@@ -186,12 +210,13 @@ const DEPOT={x:-150,y:-150};
 const RIVER_HOUSES=[[-215,-210],[-62,-196],[72,-196],[162,-192],[255,-188]];
 function genWorld(){
   const r=mulberry(4242);trees=[];houses=[];
-  [[-48,282],[46,290],[-4,342],[78,356],[-82,350],[10,410]].forEach(p=>trees.push(mkTree(p[0],p[1])));
+  [[-48,282],[82,292],[-8,342],[100,368],[-82,350],[-30,420]].forEach(p=>trees.push(mkTree(p[0],p[1])));
   for(let gx=-1100;gx<=1100;gx+=92)for(let gy=-1100;gy<=1100;gy+=92){
     const x=gx+(r()-.5)*46,y=gy+(r()-.5)*46,d=Math.hypot(x,y);if(d>1070)continue;
     if(Math.abs(x)<330&&y>-235&&y<255)continue;
     if(Math.abs(x)<140&&y>=255&&y<440)continue;
     if(Math.abs(y-riverY(x))<62)continue;
+    if((Math.abs(x-40)<34&&y>100&&y<540)||(Math.abs(y-140)<40&&Math.abs(x)<540))continue;
     const v=r();
     if(v<.44)trees.push(mkTree(x,y));
     else if(v<.62)houses.push({x,y,w:42+r()*14,h:34+r()*8,ht:20,roof:ROOFS[Math.floor(r()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0});
@@ -241,6 +266,7 @@ function ignite(h){h.st='fire';h.hp=12*(1+.6*(yl()-1));h.burn=0;h.sm=0}
 /* ===================== 購入 ===================== */
 function levelUp(id){
   S.paid[id]=0;const p=PADMAP[id];burst(p.x,p.y,'#f3b648',34);snd('buy');buzz(40);shake=6;
+  if(id==='box'){S.boxN=(S.boxN||0)+1;giveBox('装備屋で買った');return}
   if(id==='crew'){S.crew++;addWorker(p.x,p.y);pop('団員が入団！',UP.crew.fx());return}
   S.lv[id]++;const L=S.lv[id];
   if(id==='truck'&&L===1){T.x=PARK.x;T.y=PARK.y;pop('ポンプ車 登場！',UP.truck.fx(1));return}
@@ -260,7 +286,8 @@ function updWorker(w,dt){
     w.t+=dt;if(w.t>.9){w.t=0;const tr=w.tg;if(tr&&tr.st==='up'){tr.hp--;tr.shake=.15;chips(tr.x,tr.y-14);if(tr.hp<=0){tr.st='stump';tr.t=20;w.wood+=2}}
       if(!tr||tr.st!=='up')w.st=w.wood>=6?'ret':'seek'}
   }else{
-    if(move(sell.x,sell.y,26)){const v=w.wood*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-20,'+'+Math.floor(v),'#f3b648',13);w.wood=0;w.st='seek'}
+    if(!w.dep)w.dep=nearestDeposit(w.x,w.y);const dp=w.dep;
+    if(move(dp.x,dp.y,26)){if(dp.line!=null){S.rs[dp.line].w+=w.wood;float(dp.x,dp.y-30,'+'+w.wood,'#d9a46e',12)}else{const v=w.wood*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-20,'+'+Math.floor(v),'#f3b648',13)}w.wood=0;w.dep=null;w.st='seek'}
   }
 }
 function chips(x,y){for(let i=0;i<4;i++){const a=-Math.PI/2+(Math.random()-.5)*2;parts.push({k:'chip',x,y,vx:Math.cos(a)*90,vy:Math.sin(a)*90,life:.6})}}
@@ -282,7 +309,7 @@ function updGuide(){
   else if(fire)g={t:'火事だ！ 近づくと放水する。消すとお礼のコインが出る',tg:fire,mode:'alert'};
   else if(P.hp<=2&&mon&&dist(P.x,P.y,mon.x,mon.y)<200)g={t:'体力が少ない！ 少し離れると回復する',tg:sell,mode:'alert'};
   else if(mon&&(!S.f.killed||dist(P.x,P.y,mon.x,mon.y)<300))g={t:'ヒノコに近づくと放水！ 倒すと「炎の石」（高く売れる）',tg:mon,mode:'alert'};
-  else if(carry()>=cap())g={t:'背中がいっぱい！ 買取所でコインにかえよう',tg:sell};
+  else if(carry()>=cap()){const dp=nearestDeposit(P.x,P.y);g={t:dp.line!=null?'背中がいっぱい！ 近くのトロッコ駅に置こう':'背中がいっぱい！ 買取所でコインにかえよう',tg:dp}}
   else if(S.pile>=5)g={t:'団員が稼いだコインを受け取ろう',tg:PILE,mode:'gold'};
   else{const p=cheapestPad(false);
     if(p){const need=padRem(p.id)-S.coins;g={t:`あと ${need} コインで「${padName(p.id)}」！ 集めて売ろう`,tg:carry()>=cap()*.7?sell:(tree||sell)}}
@@ -372,7 +399,7 @@ function updTyphoon(dt){
       if(S.lv.truck>=1&&dist(T.x,T.y,z.x,z.y)<z.r+70)z.r-=(16+8*S.lv.truck)*dt;
       if(z.r<24){zones.splice(i,1);float(z.x,z.y,'水が引いた！','#fff',14)}}
     for(const h of houses){
-      if(h.person&&dist(P.x,P.y,h.x,h.y)<44){h.person=false;ty.rescued++;drop('coin',h.x,h.y,5+2*yl());float(h.x,h.y-56,'助かった！ありがとう','#fff',14);snd('kill');burst(h.x,h.y-30,'#3d93db',12)}
+      if(h.person&&dist(P.x,P.y,h.x,h.y)<44){h.person=false;ty.rescued++;addMerit(3);drop('coin',h.x,h.y,5+2*yl());float(h.x,h.y-56,'助かった！ありがとう','#fff',14);snd('kill');burst(h.x,h.y-30,'#3d93db',12)}
       if(h.st==='flood'&&!h.person&&!zones.some(z=>dist(h.x,h.y,z.x,z.y)<z.r))h.st='ok'}
     if(ty.t<=0||(!zones.length&&!houses.some(h=>h.person)))endTyphoon();
   }
@@ -384,7 +411,7 @@ function endTyphoon(){
   const bonus=safe*3*yl()+(perfect&&tot>0?10*yl():0);
   if(bonus)drop('coin',P.x,P.y,bonus);
   pop(perfect?'台風を完璧にのりきった！':'台風をのりきった',`守れた家 ${safe}/${tot}　${perfect?'土嚢で町を守った！':'堤防を強くすると次はもっと守れる'}`);
-  snd('buy');burst(P.x,P.y-30,'#3d93db',30);
+  snd('buy');burst(P.x,P.y-30,'#3d93db',30);addMerit(safe+(perfect?5:0));if(perfect&&tot>0)setTimeout(()=>giveBox('台風から町を守ったごほうび'),1500);
   S.tyN=(S.tyN||0)+1;S.tyT=360;for(const g of segs)g.sacks=0;S.sand=0;ty=null;
 }
 function tyGuide(){
@@ -399,6 +426,68 @@ function tyGuide(){
   return null;
 }
 
+/* ===================== 階級・装備・トロッコ ===================== */
+const RANKS=['団員','班長','部長','副分団長','分団長','副団長','団長'];
+const RANK_REQ=[0,30,100,220,400,650,1000,1e9];
+const rankProg=()=>S.rank>=6?1:clamp((S.merit-RANK_REQ[S.rank])/(RANK_REQ[S.rank+1]-RANK_REQ[S.rank]),0,1);
+function addMerit(n){if(!n)return;S.merit=(S.merit||0)+n;while(S.rank<6&&S.merit>=RANK_REQ[S.rank+1]){S.rank++;rankUp()}}
+function rankUp(){snd('buy');buzz([40,40,80]);burst(P.x,P.y-30,'#f3b648',40);
+  pop(`昇進！ ${RANKS[S.rank]}になった`,'ごほうびの装備箱をもらった');setTimeout(()=>giveBox(`${RANKS[S.rank]}への昇進祝い`),1600)}
+const EQ={helmet:{name:'ヘルメット',fx:['','体力 +1','体力 +2','体力 +3']},coat:{name:'防火衣',fx:['','放水の強さ +15%','放水の強さ +30%','放水の強さ +50%']},
+  boots:{name:'長靴',fx:['','歩く速さ +8%','歩く速さ +15%','歩く速さ +25%']},nozzle:{name:'筒先',fx:['','放水が届く距離 +10','放水が届く距離 +20','放水が届く距離 +35']}};
+const RARE=['なし','銅','銀','金'];
+const HELM=['#e8ecf2','#c98a4b','#dfe5ec','#f3c24a'],STRIPE=['#f3e05a','#e9a86a','#ffffff','#ffd84a'],BOOT=['#2b2f3a','#7a4a22','#7d8796','#b8860b'];
+let boxReason=[];
+function giveBox(reason){S.boxes=(S.boxes||0)+1;boxReason.push(reason||'');tryOpenBox()}
+function tryOpenBox(){if(paused||!S.boxes)return;S.boxes--;openBox(boxReason.shift()||'')}
+function openBox(reason){
+  const slots=Object.keys(EQ),slot=slots[Math.floor(Math.random()*slots.length)],r=Math.random(),rare=r<.12?3:r<.42?2:1;
+  const cur=S.eq[slot];let res;
+  if(rare>cur){S.eq[slot]=rare;if(slot==='helmet')P.hp=maxHp();res=`<p class="lead">${EQ[slot].fx[rare]}</p><p class="note">キャラクターの見た目も変わったよ</p>`}
+  else{const c=[0,10,25,60][rare]*yl();S.coins+=c;S.earned+=c;res=`<p class="lead">もう同じか、もっと良い物を持っているので<br>コイン ${c}枚にかえた</p>`}
+  modal(`<h2>装備箱</h2><p class="note">${reason}</p><div class="medal r0 shake" id="boxMedal">開けるよ…</div><div id="boxRes" hidden><p class="lead" style="font-size:20px">${RARE[rare]}の${EQ[slot].name}！</p>${res}</div><button class="btn" data-act="close" id="boxOk" hidden>やったね！</button>`);
+  snd('new');
+  setTimeout(()=>{const m=document.getElementById('boxMedal');if(!m)return;m.className='medal r'+rare+' shake';m.innerHTML=`${RARE[rare]}の<br>${EQ[slot].name}`;document.getElementById('boxRes').hidden=false;document.getElementById('boxOk').hidden=false;snd(rare===3?'buy':'coin');if(rare===3)buzz([60,40,60])},900);
+}
+const RAILS=[
+  {need:2,st:{x:40,y:470},pad:{x:40,y:520}},
+  {need:3,st:{x:-470,y:130},pad:{x:-470,y:180}},
+  {need:4,st:{x:470,y:130},pad:{x:470,y:180}},
+];
+const TERM={x:40,y:130};
+const carts=RAILS.map(()=>({pos:0,st:'load',t:0,w:0,s:0}));
+const builtRails=()=>RAILS.slice(0,S.lv.rail||0);
+function nearestDeposit(x,y){const sell=PADMAP.sell;let b={x:sell.x,y:sell.y},bd=dist(x,y,sell.x,sell.y);
+  builtRails().forEach((r,i)=>{const d=dist(x,y,r.st.x,r.st.y);if(d<bd){bd=d;b={x:r.st.x,y:r.st.y,line:i}}});return b}
+let railT=0;
+function updRail(dt){
+  railT+=dt;
+  builtRails().forEach((r,i)=>{
+    const st=S.rs[i],c=carts[i],len=dist(r.st.x,r.st.y,TERM.x,TERM.y),sp=170;
+    if(railT>.045&&!P.ride&&dist(P.x,P.y,r.st.x,r.st.y)<38&&carry()>0){const k=S.stone>0?'stone':'wood';S[k]--;st[k==='stone'?'s':'w']++;fly(k,P.x,P.y-34,r.st.x,r.st.y-10);snd('pick');if(!S.f.rail){S.f.rail=true;toast('トロッコが詰所まで運んで、コインにしてくれる','ok')}}
+    if(c.st==='load'){c.pos=0;if(st.w+st.s>0){c.t+=dt;if(c.t>.5){c.t=0;const tw=Math.min(st.w,40),ts=Math.min(st.s,40-tw);st.w-=tw;st.s-=ts;c.w=tw;c.s=ts;c.st='go'}}}
+    else if(c.st==='go'){c.pos+=sp*dt/len;if(c.pos>=1){c.pos=1;const v=(c.w+c.s*3)*MULT[S.lv.price];S.pile+=v;S.earned+=v;float(PILE.x,PILE.y-24,'+'+Math.floor(v),'#f3b648',15);snd('coin');c.w=c.s=0;c.st='back'}}
+    else{c.pos-=sp*dt/len;if(c.pos<=0){c.pos=0;c.st='load'}}
+  });
+  if(railT>.045)railT=0;
+}
+function cartXY(i){const r=RAILS[i],c=carts[i];return{x:r.st.x+(TERM.x-r.st.x)*c.pos,y:r.st.y+(TERM.y-r.st.y)*c.pos}}
+function drawRails(t){
+  const br=builtRails();if(!br.length)return;
+  for(const r of br){const dx=TERM.x-r.st.x,dy=TERM.y-r.st.y,L=Math.hypot(dx,dy),ux=dx/L,uy=dy/L,nx=-uy,ny=ux;
+    cx.strokeStyle='#8a6a44';cx.lineWidth=4;cx.beginPath();for(let d=0;d<L;d+=16){const x=r.st.x+ux*d,y=r.st.y+uy*d;cx.moveTo(x-nx*9,y-ny*9);cx.lineTo(x+nx*9,y+ny*9)}cx.stroke();
+    cx.strokeStyle='#7d8796';cx.lineWidth=2.5;cx.beginPath();for(const o of[-6,6]){cx.moveTo(r.st.x+nx*o,r.st.y+ny*o);cx.lineTo(TERM.x+nx*o,TERM.y+ny*o)}cx.stroke();
+    const s=r.st;shadow(s.x,s.y+14,40,8);cx.fillStyle='#c9b08c';cx.fillRect(s.x-34,s.y-6,68,20);cx.fillStyle='#5b6f8f';cx.fillRect(s.x-38,s.y-30,76,8);cx.fillStyle='#6b4a30';cx.fillRect(s.x-34,s.y-22,4,18);cx.fillRect(s.x+30,s.y-22,4,18);
+    const i=RAILS.indexOf(r),st=S.rs[i],n=Math.min(12,Math.ceil((st.w+st.s)/4));for(let k=0;k<n;k++)icon(k%3===2&&st.s?'stone':'wood',s.x-24+(k%6)*9,s.y+8-Math.floor(k/6)*6,.55);
+    const on=dist(P.x,P.y,s.x,s.y)<38;cx.strokeStyle=on?'#f3b648':'#2f78b8';cx.lineWidth=2.5;cx.setLineDash([6,5]);cx.beginPath();cx.arc(s.x,s.y+4,40,0,7);cx.stroke();cx.setLineDash([]);
+    label('トロッコ駅',s.x,s.y-44,12,'#fff','#2f78b8');if(st.w+st.s)label(String(st.w+st.s),s.x+44,s.y-30,10,'#fff','#8a6a44')}
+  cx.fillStyle='#6b4a30';cx.fillRect(TERM.x-16,TERM.y-14,32,10);cx.fillStyle='#8a6a44';cx.fillRect(TERM.x-12,TERM.y-22,24,8);
+}
+function drawCart(i,t){const {x,y}=cartXY(i),c=carts[i];shadow(x,y+3,14,4);
+  cx.fillStyle='#23262e';cx.beginPath();cx.arc(x-8,y,3.5,0,7);cx.arc(x+8,y,3.5,0,7);cx.fill();
+  cx.fillStyle='#5b6f8f';cx.beginPath();cx.moveTo(x-14,y-16);cx.lineTo(x+14,y-16);cx.lineTo(x+11,y-2);cx.lineTo(x-11,y-2);cx.closePath();cx.fill();cx.fillStyle='#e5432a';cx.fillRect(x-14,y-18,28,3);
+  if(c.w+c.s){for(let k=0;k<4;k++)icon(k===3&&c.s?'stone':'wood',x-9+k*6,y-19-(k%2)*3,.5)}}
+
 /* ===================== 更新 ===================== */
 function moveBody(o,ix,iy,sp,dt,r){
   const nx=o.x+ix*sp*dt,ny=o.y+iy*sp*dt;
@@ -410,12 +499,12 @@ function damage(target,pw,dt){
   else{target.hp-=pw*dt;if(target.hp<=0&&target.st==='fire')extinguish(target)}
 }
 function killMon(m){
-  m.dead=true;S.f.killed=true;const n=m.boss?10+5*yl():2+Math.floor(yl()/2);
+  m.dead=true;S.f.killed=true;addMerit(m.boss?15:1);if(m.boss)setTimeout(()=>giveBox('大ヒノコを倒したごほうび'),1200);const n=m.boss?10+5*yl():2+Math.floor(yl()/2);
   drop('stone',m.x,m.y,n);if(m.boss){drop('coin',m.x,m.y,15*yl());pop('大ヒノコ撃退！','炎の石とコインをたくさん拾おう');shake=10}
   else float(m.x,m.y-30,'撃退！','#fff',16);
   burst(m.x,m.y-10,'#ff9a3c',m.boss?40:14);snd('kill');buzz(25);
 }
-function extinguish(h){h.st='ok';h.burn=0;S.f.ext=true;drop('coin',h.x,h.y,3+2*yl());float(h.x,h.y-50,'ありがとう！','#fff',15);burst(h.x,h.y-20,'#3d93db',14);snd('kill')}
+function extinguish(h){h.st='ok';h.burn=0;S.f.ext=true;addMerit(3);drop('coin',h.x,h.y,3+2*yl());float(h.x,h.y-50,'ありがとう！','#fff',15);burst(h.x,h.y-20,'#3d93db',14);snd('kill')}
 function spray(src,range,pw,dt){
   let tg=null,bd=range;
   for(const m of mons){if(m.dead)continue;const d=dist(src.x,src.y,m.x,m.y);if(d<bd){bd=d;tg=m}}
@@ -428,16 +517,16 @@ function hurt(n,from){
   P.hp-=n;P.hurt=1;P.since=0;shake=7;snd('hurt');buzz(60);
   const d=dist(P.x,P.y,from.x,from.y)||1;moveBody(P,(P.x-from.x)/d,(P.y-from.y)/d,900,.04);
   if(P.hp<=0){const lw=Math.floor(S.wood/2),ls=Math.floor(S.stone/2);S.wood-=lw;S.stone-=ls;drop('wood',P.x,P.y,lw);drop('stone',P.x,P.y,ls);
-    P.x=START.x;P.y=START.y;P.hp=5;P.hurt=2;toast('やられた！ 詰所で復活。ホースを強くするとヒノコに勝ちやすい','ng')}
+    P.x=START.x;P.y=START.y;P.hp=maxHp();P.hurt=2;toast('やられた！ 詰所で復活。ホースを強くするとヒノコに勝ちやすい','ng')}
 }
 function update(dt){
   const [ix,iy]=input();
   if(ix||iy){if(!moved){moved=true;document.getElementById('hint').hidden=true}}
   // 移動
   if(P.ride){moveBody(T,ix,iy,truckSpeed()*1.5,dt,24);if(Math.abs(ix)>.1)T.face=ix>0?1:-1;T.moving=!!(ix||iy);P.x=T.x;P.y=T.y}
-  else{moveBody(P,ix,iy,165*walkMul(),dt);if(Math.abs(ix)>.1)P.face=ix>0?1:-1;P.moving=!!(ix||iy)}
+  else{moveBody(P,ix,iy,165*walkMul()*spdMul(),dt);if(Math.abs(ix)>.1)P.face=ix>0?1:-1;P.moving=!!(ix||iy)}
   P.hurt=Math.max(0,P.hurt-dt);P.since+=dt;
-  if(P.since>4&&P.hp<5){regenT+=dt;if(regenT>2){regenT=0;P.hp++}}
+  if(P.since>4&&P.hp<maxHp()){regenT+=dt;if(regenT>2){regenT=0;P.hp++}}
 
   // 木を切る
   if(!P.ride){let tr=null;for(const t of trees){if(t.st==='up'&&active(t)&&dist(P.x,P.y,t.x,t.y+4)<44){tr=t;break}}
@@ -509,7 +598,7 @@ function update(dt){
       if(h.burn>45){h.st='ruin';h.t=40;float(h.x,h.y-40,'焼けてしまった…','#ffd0c6',13)}}
     else if(h.st==='ruin'){h.t-=dt;if(h.t<=0)h.st='ok'}}
 
-  updTyphoon(dt);
+  updTyphoon(dt);updRail(dt);
   for(const w of workers)updWorker(w,dt);
 
   // 演出
@@ -561,6 +650,8 @@ function icon(k,x,y,s){cx.save();cx.translate(x,y);cx.scale(s,s);
   else if(k==='tower'){cx.strokeStyle='#5a4532';cx.lineWidth=2;cx.beginPath();cx.moveTo(-7,11);cx.lineTo(-3,-5);cx.moveTo(7,11);cx.lineTo(3,-5);cx.moveTo(-6,5);cx.lineTo(6,5);cx.moveTo(-5,0);cx.lineTo(5,0);cx.stroke();cx.fillStyle='#e5432a';cx.beginPath();cx.moveTo(-8,-5);cx.lineTo(0,-12);cx.lineTo(8,-5);cx.closePath();cx.fill();cx.fillStyle='#f3b648';cx.fillRect(-2,-5,4,3)}
   else if(k==='sand'){cx.fillStyle='#cdb27a';rr(-9,-6,18,12,4);cx.fill();cx.fillStyle='#9c8350';cx.fillRect(-1.5,-6,3,12)}
   else if(k==='levee'){cx.fillStyle='#3d93db';cx.fillRect(-13,0,26,8);cx.fillStyle='#8a9a78';cx.beginPath();cx.moveTo(-11,9);cx.lineTo(-5,-6);cx.lineTo(5,-6);cx.lineTo(11,9);cx.closePath();cx.fill();cx.fillStyle='#cdb27a';rr(-6,-11,12,5,2);cx.fill()}
+  else if(k==='chest'){cx.fillStyle='#8a5a2b';rr(-11,-7,22,15,3);cx.fill();cx.fillStyle='#a8703a';rr(-11,-11,22,7,3);cx.fill();cx.fillStyle='#f3b648';cx.fillRect(-11,-5,22,2.5);cx.fillRect(-2,-7,4,6)}
+  else if(k==='cart'){cx.fillStyle='#5b6f8f';cx.beginPath();cx.moveTo(-11,-7);cx.lineTo(11,-7);cx.lineTo(8,4);cx.lineTo(-8,4);cx.closePath();cx.fill();cx.fillStyle='#23262e';cx.beginPath();cx.arc(-6,6,3,0,7);cx.arc(6,6,3,0,7);cx.fill();icon('wood',0,-9,.6)}
   else if(k==='price'){icon('coin',-3,2,.9);cx.fillStyle='#2fa86b';cx.beginPath();cx.moveTo(8,-11);cx.lineTo(14,-3);cx.lineTo(10,-3);cx.lineTo(10,4);cx.lineTo(6,4);cx.lineTo(6,-3);cx.lineTo(2,-3);cx.closePath();cx.fill()}
   cx.restore()}
 
@@ -687,15 +778,15 @@ function drawMon(m,t){
 }
 function drawPerson(x,y,face,body,wood,stone,small,t,moving,chop,sand){
   const s=small?.85:1,bob=moving?Math.abs(Math.sin(t/90))*2:0;shadow(x,y+2,10*s,4*s);
-  cx.fillStyle='#2b2f3a';cx.fillRect(x-5*s,y-6*s,4*s,7*s);cx.fillRect(x+1*s,y-6*s,4*s,7*s);
+  const me=!small&&body==='#22355c';cx.fillStyle=me?BOOT[S.eq.boots]:'#2b2f3a';cx.fillRect(x-5*s,y-6*s,4*s,7*s);cx.fillRect(x+1*s,y-6*s,4*s,7*s);
   const n=Math.min(wood+stone,16),nw=Math.min(wood,n);
   for(let i=0;i<n;i++){const bx=x-face*10*s,by=y-22*s-bob-i*4.4*s;if(i<nw){cx.fillStyle='#9a6a3a';cx.fillRect(bx-7*s,by-2.5*s,14*s,4.5*s);cx.fillStyle='#d9a46e';cx.fillRect(bx+(face>0?-7:5)*s,by-2.5*s,2*s,4.5*s)}else{cx.fillStyle='#d23a24';cx.beginPath();cx.moveTo(bx,by-4*s);cx.lineTo(bx+5*s,by);cx.lineTo(bx,by+3*s);cx.lineTo(bx-5*s,by);cx.closePath();cx.fill()}}
   if(sand){const m=Math.min(sand,14);for(let i=0;i<m;i++){const bx=x-face*10*s,by=y-22*s-bob-(n+i)*5*s;cx.fillStyle='#cdb27a';rr(bx-7*s,by-3*s,14*s,6*s,2.5*s);cx.fill();cx.fillStyle='#9c8350';cx.fillRect(bx-1*s,by-3*s,2*s,6*s)}}
   if(wood+stone>16)label(String(wood+stone),x-face*10*s,y-22*s-bob-n*4.4*s-8,10,'#fff','#7a4f2a');
   cx.fillStyle=body;rr(x-9*s,y-22*s-bob,18*s,17*s,5*s);cx.fill();
-  cx.fillStyle='#f3e05a';cx.fillRect(x-9*s,y-12*s-bob,18*s,2.5*s);
+  cx.fillStyle=me?STRIPE[S.eq.coat]:'#f3e05a';cx.fillRect(x-9*s,y-12*s-bob,18*s,2.5*s);if(me&&S.eq.coat)cx.fillRect(x-9*s,y-17*s-bob,18*s,1.5*s);
   cx.fillStyle='#f2c7a1';cx.beginPath();cx.arc(x,y-28*s-bob,7*s,0,7);cx.fill();
-  cx.fillStyle=small?'#fff':'#e8ecf2';cx.beginPath();cx.arc(x,y-30*s-bob,7.5*s,Math.PI,0);cx.fill();cx.fillRect(x-8.5*s,y-31*s-bob,17*s,2.5*s);
+  cx.fillStyle=small?'#fff':me?HELM[S.eq.helmet]:'#e8ecf2';cx.beginPath();cx.arc(x,y-30*s-bob,7.5*s,Math.PI,0);cx.fill();cx.fillRect(x-8.5*s,y-31*s-bob,17*s,2.5*s);
   cx.fillStyle='#2b2f3a';cx.fillRect(x+face*3*s-1,y-27*s-bob,2,2);
   if(chop){const a=Math.sin(t/40)>0?-.9:.5;cx.save();cx.translate(x+face*9*s,y-18*s-bob);cx.rotate(a*face);cx.scale(face,1);icon('axe',6,-4,.75*s);cx.restore()}
 }
@@ -716,7 +807,7 @@ function drawTruck(x,y,f,t,lit,ridden){
 function drawDrop(d){const y=d.y-d.z;cx.fillStyle='rgba(40,60,90,.15)';cx.beginPath();cx.ellipse(d.x,d.y+3,6,2.5,0,0,7);cx.fill();icon(d.k,d.x,y-4,d.k==='wood'?.75:.8)}
 
 function draw(t){
-  drawGround();drawRiver(t);drawZones(t);drawLevees(t);
+  drawGround();drawRiver(t);drawZones(t);drawLevees(t);drawRails(t);
   const s=sc(),m=80/s;
   // 放水の範囲
   if(!P.ride){cx.strokeStyle='rgba(61,147,219,.18)';cx.lineWidth=2;cx.beginPath();cx.arc(P.x,P.y,hoseRange(),0,7);cx.stroke()}
@@ -726,6 +817,7 @@ function draw(t){
   for(const h of houses)if(inView(h.x,h.y,m*s))list.push({y:h.y+h.h/2,f:()=>drawHouse(h,t)});
   for(const b of BLD)list.push({y:b.y+b.h/2,f:()=>drawBld(b,t)});
   for(const w of workers)list.push({y:w.y,f:()=>drawPerson(w.x,w.y,w.face,'#ee8a3a',w.wood,0,true,t,w.st!=='chop',w.st==='chop')});
+  builtRails().forEach((r,i)=>{const c=cartXY(i);list.push({y:c.y,f:()=>drawCart(i,t)})});
   for(const mo of mons)list.push({y:mo.y,f:()=>drawMon(mo,t)});
   if(S.lv.truck>=1)list.push({y:T.y,f:()=>drawTruck(T.x,T.y,T.face,t,!!T.spray||T.moving||P.ride,P.ride)});
   if(!P.ride)list.push({y:P.y,f:()=>{if(P.hurt>0&&Math.floor(t/80)%2)return;drawPerson(P.x,P.y,P.face,'#22355c',S.wood,S.stone,false,t,P.moving,!!P.chopping,S.sand)}});
@@ -758,11 +850,12 @@ function draw(t){
 /* ===================== HUD ===================== */
 let hudKey='';
 function hud(){
-  const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand].join(',');if(k!==hudKey){hudKey=k;
+  const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand,maxHp(),S.rank,S.merit].join(',');if(k!==hudKey){hudKey=k;
     document.getElementById('hCoin').textContent=S.coins;
+    document.getElementById('hRank').textContent=RANKS[S.rank];document.getElementById('hRankBar').style.width=(rankProg()*100)+'%';
     document.getElementById('hBag').textContent=S.sand>0?`${S.sand}/${cap()}`:`${carry()}/${cap()}`;document.getElementById('pBag').classList.toggle('sand',S.sand>0);
     document.getElementById('pBag').classList.toggle('full',carry()>=cap());
-    document.getElementById('hHeart').innerHTML=Array.from({length:5},(_,i)=>`<i class="${i<P.hp?'':'off'}"></i>`).join('');
+    document.getElementById('hHeart').innerHTML=Array.from({length:maxHp()},(_,i)=>`<i class="${i<P.hp?'':'off'}"></i>`).join('');
     document.getElementById('muteBtn').textContent=S.muted?'音 OFF':'音 ON'}
   const rb=document.getElementById('ride');const show=S.lv.truck>=1&&(P.ride||dist(P.x,P.y,T.x,T.y)<80);
   rb.hidden=!show;if(show){const tx=P.ride?'ポンプ車から降りる':'ポンプ車に乗る';if(rb.textContent!==tx)rb.textContent=tx;rb.classList.toggle('off',P.ride)}
@@ -777,7 +870,7 @@ document.getElementById('muteBtn').addEventListener('click',()=>{audio();S.muted
 /* ===================== モーダル ===================== */
 let paused=false;
 function modal(html){document.getElementById('modalRoot').innerHTML=`<div class="modal" role="dialog" aria-modal="true"><div class="box">${html}</div></div>`;paused=true}
-function closeModal(){document.getElementById('modalRoot').innerHTML='';paused=false;last=performance.now()}
+function closeModal(){document.getElementById('modalRoot').innerHTML='';paused=false;last=performance.now();if(S&&S.boxes)setTimeout(tryOpenBox,350)}
 const INAPP=/Line\/|Instagram|FBAN|FBAV|FB_IAB|Twitter|MicroMessenger|GSA\//i.test(navigator.userAgent);
 const WARN=INAPP?`<div class="warn"><b>アプリの中で開いています。</b>画面が動いてしまうときは、右上や右下のメニューから「ブラウザで開く（Safariで開く）」を選ぶと快適に遊べます。</div>`:'';
 const LOOP=`<ul class="loop">
@@ -789,7 +882,9 @@ const LOOP=`<ul class="loop">
 </ul>`;
 function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p>`)}
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
-function menu(){modal(`<h2>メニュー</h2>${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button>`)}
+function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
+function rankHtml(){const nx=S.rank<6?`次の「${RANKS[S.rank+1]}」まで 功績あと${RANK_REQ[S.rank+1]-S.merit}`:'最高の階級！';return `<p class="lead">階級：${RANKS[S.rank]}（功績 ${S.merit}）</p><div class="prog"><i style="width:${rankProg()*100}%"></i></div><p class="note">${nx}<br>火を消す・ヒノコを倒す・人を助ける・台風から町を守ると功績がたまる</p>`}
+function menu(){modal(`<h2>メニュー</h2>${rankHtml()}${eqHtml()}${LOOP}<button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button>`)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;audio();
   if(a==='start'){S.started=true;save();closeModal()}
   else if(a==='close')closeModal();
@@ -799,7 +894,7 @@ document.getElementById('menuBtn').addEventListener('click',()=>{audio();menu()}
 
 /* ===================== ループ ===================== */
 let last=performance.now();
-function resetWorld(){genWorld();ty=null;zones=[];for(const g of segs)g.sacks=0;mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=5;P.ride=false;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
+function resetWorld(){genWorld();ty=null;zones=[];for(const g of segs)g.sacks=0;mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=maxHp();P.ride=false;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
   for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);moved=false}
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
@@ -810,7 +905,7 @@ function loop(t){
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
-  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
+  S.seen=S.seen||['sell'];if(S.lv.levee==null)S.lv.levee=0;if(S.lv.rail==null)S.lv.rail=0;if(S.merit==null)S.merit=0;if(S.rank==null)S.rank=0;if(!S.eq)S.eq={helmet:0,coat:0,boots:0,nozzle:0};if(S.boxN==null)S.boxN=0;if(S.boxes==null)S.boxes=0;if(!S.rs)S.rs=[{w:0,s:0},{w:0,s:0},{w:0,s:0}];if(S.tyN==null)S.tyN=0;if(S.tyT===undefined)S.tyT=null;S.sand=0;if(!S.uz)S.uz=.8;setZoom(S.uz);
   resize();addEventListener('resize',resize);resetWorld();
   if(!S.started)intro();else if(S.earned>0)cont();
   setInterval(save,3000);addEventListener('pagehide',save);document.addEventListener('visibilitychange',()=>{if(document.hidden)save();last=performance.now()});
