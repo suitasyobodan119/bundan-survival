@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#22355c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="消防団になって町を火事から守ろう。吹田市消防団のアクション育成ゲーム">
@@ -91,6 +91,10 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 .rk{width:100%;border-collapse:collapse;font-size:13px}.rk td{padding:4px 6px;border-bottom:1px solid #eef2f6;font-variant-numeric:tabular-nums}.rk td:first-child{width:2.5em;font-family:var(--display)}.rk td:last-child{text-align:right}
 .rk tr.me td{background:#fff1c2;font-weight:700}
 .fic{font-size:11px;color:var(--mute);text-align:center;line-height:1.5}
+#zbar{position:fixed;left:0;top:0;transform-origin:0 0;z-index:50;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 16px calc(12px + env(safe-area-inset-top,0px));background:var(--navy);color:#fff;font-weight:700;text-align:center}
+#zbar button{border:0;border-radius:12px;background:var(--kin);color:#4a3306;font:inherit;font-weight:700;font-size:16px;padding:10px 18px;cursor:pointer}
+#zbar small{font-size:12px;opacity:.85}
+button,a,.qbtn{touch-action:manipulation}
 #zoom{position:fixed;right:10px;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:8px}
 #zoom button{width:44px;height:44px;border-radius:50%;border:0;background:var(--panel);font-family:var(--display);font-size:22px;line-height:1;color:var(--ink);box-shadow:0 2px 8px rgba(27,39,64,.2);cursor:pointer}
 #zoom button:disabled{opacity:.4;cursor:default}
@@ -140,6 +144,7 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 <div id="zoom"><button id="zIn" aria-label="ズームイン">＋</button><button id="zOut" aria-label="ズームアウト">－</button></div>
 <button id="ride" hidden>ポンプ車に乗る</button>
 <div id="hint">指でなぞると歩くよ</div>
+<div id="zbar" hidden><span>画面が拡大されています</span><button id="zfix">元の大きさに戻す</button><small>戻らない時は、2本指でつまんで縮めてね</small></div>
 <div id="pop"><h3 id="popH"></h3><p id="popP"></p></div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <div id="modalRoot"></div>
@@ -400,8 +405,13 @@ function updGuide(){
 }
 
 /* ===================== 入力 ===================== */
-document.addEventListener('touchmove',e=>{if(!e.target.closest||!e.target.closest('.box'))e.preventDefault()},{passive:false});
-['gesturestart','gesturechange','dblclick'].forEach(ev=>document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+const VV=window.visualViewport;const zoomedIn=()=>!!(VV&&VV.scale>1.02);
+document.addEventListener('touchmove',e=>{if(e.touches&&e.touches.length>1&&zoomedIn())return;if(!e.target.closest||!e.target.closest('.box'))e.preventDefault()},{passive:false});
+['gesturestart','gesturechange','dblclick'].forEach(ev=>document.addEventListener(ev,e=>{if(zoomedIn())return;e.preventDefault()},{passive:false}));
+let lastTE=0;document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTE<350&&!(e.target.closest&&e.target.closest('[data-act=shtap]'))&&e.target!==cv){e.preventDefault();const b=e.target.closest&&e.target.closest('button,a,[data-act]');if(b)b.click()}lastTE=now},{passive:false});
+function resetZoom(){const m=document.querySelector('meta[name=viewport]');if(!m)return;const base='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover';m.content=base+',minimum-scale=1';setTimeout(()=>{m.content=base},120);window.scrollTo(0,0)}
+function placeZoomBar(){const b=document.getElementById('zbar');if(!b)return;const z=zoomedIn();b.hidden=!z;if(!z||!VV)return;b.style.transform=`translate(${VV.offsetLeft}px,${VV.offsetTop}px) scale(${1/VV.scale})`;b.style.width=(VV.width*VV.scale)+'px'}
+if(VV){VV.addEventListener('resize',placeZoomBar);VV.addEventListener('scroll',placeZoomBar)}
 const keys={};let joy=null,moved=false;
 addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true});
 addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
@@ -434,7 +444,7 @@ let ty=null,zones=[],sandT=0;
 const tyWater=()=>Math.min(6,2+Math.floor((S.tyN||0)/2));
 const needSacks=g=>g.danger?clamp((tyWater()-Math.max(0,(S.lv.levee||0)-1))*2,2,SACK_MAX):0;
 const inZone=(x,y)=>zones.some(z=>dist(x,y,z.x,z.y)<z.r);
-const walkMul=()=>(inRiver(P.x,P.y)&&!onBridge(P.x,P.y)?.5:1)*(inZone(P.x,P.y)?.65:1);
+const walkMul=()=>(inRiver(P.x,P.y)&&!onBridge(P.x,P.y)?.25:1)*(inZone(P.x,P.y)?.65:1);
 function startTyphoon(){
   em=null;hr=null;if(rain)endRain(true);if(eq){eq.hs.forEach(h=>{h.person=false;h.st='ok'});eq=null}
   ty={ph:'warn',t:75,W:tyWater(),lvl:0,flooded:new Set(),rescued:0,checked:false,boat:false};
@@ -625,7 +635,7 @@ function driveTo(v,tx,ty2,stop,sp,dt){const d=dist(v.x,v.y,tx,ty2);v.moving=d>st
 function updVehicles(dt){
   const A=VEH.amb,Tk=VEH.tank,L=VEH.ladder;
   if(S.lv.amb)A.lit=P.ride==='amb';
-  if(S.lv.tank){const out=S.lv.truck&&dist(T.x,T.y,PARK.x,PARK.y)>40;if(out)driveTo(Tk,T.x-T.face*70,T.y+6,30,truckSpeed()*1.4,dt);else driveTo(Tk,PADMAP.tank.x,PADMAP.tank.y,6,180,dt);Tk.lit=out}
+  if(S.lv.tank){const out=S.lv.truck&&dist(T.x,T.y,PARK.x,PARK.y)>40;{let gx=out?T.x-T.face*70:PADMAP.tank.x,gy=out?T.y+6:PADMAP.tank.y;const wp=viaBridge(Tk,gx,gy);if(wp){gx=wp.x;gy=wp.y}driveTo(Tk,gx,gy,wp?4:(out?30:6),out?truckSpeed()*1.4:180,dt)}Tk.lit=out}
   if(S.lv.ladder){L.lit=P.ride==='ladder';
     if(P.ride==='ladder'){spray(L,140,8+2*yl(),dt);const h=nearest(houses,L.x,L.y,o=>o.person&&o.st!=='collapsed'&&dist(o.x,o.y,L.x,L.y)<100);
       if(h){L.t+=dt;L.rt=h;if(L.t>1.5){L.t=0;rescuePerson(h);float(h.x,h.y-70,'はしごで救助！','#fff',13)}}else{L.t=0;L.rt=null}}
@@ -826,9 +836,12 @@ function drawLake(){if(dist(cam.x,cam.y,LAKE.x,LAKE.y)>1400)return;cx.fillStyle=
 const RIVALS=['吹一','吹二','千一','千二','豊津','岸部','山田','千里丘'];
 
 /* ===================== 更新 ===================== */
-function moveBody(o,ix,iy,sp,dt,r){
+const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
+let riverW=0;
+function viaBridge(v,tx,ty){const sv=Math.sign(v.y-riverY(v.x))||1,st=Math.sign(ty-riverY(tx))||1;if(sv===st)return null;const by=riverY(0);if(Math.abs(v.x)>12||Math.abs(v.y-by)>80)return{x:0,y:by+sv*72};return{x:0,y:by+st*72}}
+function moveBody(o,ix,iy,sp,dt,r,veh){
   const nx=o.x+ix*sp*dt,ny=o.y+iy*sp*dt;
-  if(!blocked(nx,o.y))o.x=nx;if(!blocked(o.x,ny))o.y=ny;
+  const bl=veh?vehBlocked:blocked;if(!bl(nx,o.y))o.x=nx;if(!bl(o.x,ny))o.y=ny;
   const m=r||14;if(!inArea(o.x,o.y,m)){let best=null,bd=1e9;for(const c of [{x:0,y:0,r:radius()},...openD()]){const d=dist(o.x,o.y,c.x,c.y)-c.r;if(d<bd){bd=d;best=c}}const d=dist(o.x,o.y,best.x,best.y)||1,Rr=best.r-m;o.x=best.x+(o.x-best.x)*Rr/d;o.y=best.y+(o.y-best.y)*Rr/d}
 }
 function damage(target,pw,dt){
@@ -862,7 +875,8 @@ function update(dt){
   const [ix,iy]=input();
   if(ix||iy){if(!moved){moved=true;document.getElementById('hint').hidden=true}}
   // 移動
-  if(P.ride){const V=rideV();moveBody(V,ix,iy,RIDES[P.ride].spd(),dt,24);if(Math.abs(ix)>.1)V.face=ix>0?1:-1;V.moving=!!(ix||iy);P.x=V.x;P.y=V.y}
+  if(P.ride&&P.ride!=='boat'){const V=rideV();if(Math.abs(V.y-riverY(V.x))<70&&Math.abs(V.x)>16&&(ix||iy)){riverW-=dt;if(riverW<=0){riverW=3;float(V.x,V.y-60,'車は川を渡れない！ 橋を通ろう','#ffd0c6',13)}}}
+  if(P.ride){const V=rideV();moveBody(V,ix,iy,RIDES[P.ride].spd(),dt,24,P.ride!=='boat');if(Math.abs(ix)>.1)V.face=ix>0?1:-1;V.moving=!!(ix||iy);P.x=V.x;P.y=V.y}
   else{moveBody(P,ix,iy,165*walkMul()*spdMul(),dt);if(Math.abs(ix)>.1)P.face=ix>0?1:-1;P.moving=!!(ix||iy)}
   P.hurt=Math.max(0,P.hurt-dt);P.since+=dt;
   if(P.since>4&&P.hp<maxHp()){regenT+=dt;if(regenT>2){regenT=0;P.hp++}}
@@ -911,6 +925,7 @@ function update(dt){
     if(P.ride!=='truck'){
       const tg=nearest(mons.filter(m=>!m.dead).concat(houses.filter(h=>h.st==='fire'&&active(h)&&!h.ev)),T.x,T.y);
       let tx=PARK.x,ty=PARK.y,stop=6;if(tg){tx=tg.x;ty=tg.y+20;stop=truckRange()*.7}else if(zones.some(z=>!z.ev)){const z=nearest(zones.filter(z=>!z.ev),T.x,T.y);tx=z.x;ty=z.y+10;stop=Math.max(20,z.r*.35)}
+      const wp=viaBridge(T,tx,ty);if(wp){tx=wp.x;ty=wp.y;stop=4}
       const d=dist(T.x,T.y,tx,ty);T.moving=d>stop;
       if(T.moving){const s=truckSpeed();T.x+=(tx-T.x)/d*s*dt;T.y+=(ty-T.y)/d*s*dt;if(Math.abs(tx-T.x)>4)T.face=tx>T.x?1:-1}
     }
@@ -1240,6 +1255,7 @@ document.getElementById('ride').addEventListener('click',()=>{audio();
   if(P.ride){const k=P.ride;unboard();if(k==='truck')toast('ポンプ車はふだんの火事を自動で消しに行きます')}
   else{const k=nearRide();if(k){board(k);toast(RIDE_TIP[k],'ok')}}
   snd('new')});
+document.getElementById('zfix').addEventListener('click',()=>{resetZoom();setTimeout(placeZoomBar,400)});
 document.getElementById('muteBtn').addEventListener('click',()=>{audio();S.muted=!S.muted;save()});
 
 /* ===================== モーダル ===================== */
