@@ -235,11 +235,13 @@ const DIST=[{id:'d_mt',name:'山の地区',x:-1450,y:120,r:520},{id:'d_res',name
 const openD=()=>DIST.filter(d=>S.lv[d.id]);
 function inArea(x,y,m){if(Math.hypot(x,y)<radius()-m)return true;for(const d of openD())if(dist(x,y,d.x,d.y)<d.r-m)return true;return false}
 const active=o=>inArea(o.x,o.y,18);
-function blocked(x,y){for(const b of BLD){if(Math.abs(x-b.x)<b.w/2+8&&y>b.y-b.h/2-4&&y<b.y+b.h/2+10)return true}return false}
+function blocked(x,y){for(const b of BLD){if(Math.abs(x-b.x)<b.w/2+8&&y>b.y-b.h/2-4&&y<b.y+b.h/2+10)return true}for(const l of logs){if(Math.abs(x-l.x)<42&&Math.abs(y-l.y)<14)return true}return false}
+let logs=[];
 const riverY=x=>-310+16*Math.sin(x/190);
 const inRiver=(x,y)=>Math.abs(y-riverY(x))<28;
 const onBridge=(x,y)=>Math.abs(x)<24&&inRiver(x,y);
 const DEPOT={x:-150,y:-150};
+const SHELTER={x:-75,y:42};
 const RIVER_HOUSES=[[-215,-210],[-62,-196],[72,-196],[162,-192],[255,-188]];
 function genWorld(){
   const r=mulberry(4242);trees=[];houses=[];
@@ -401,19 +403,26 @@ const segs=SEG_X.map(x=>({x,y:riverY(x)+42,sacks:0}));
 const SACK_MAX=8;
 const activeSegs=()=>segs.filter(g=>Math.hypot(g.x,g.y)<radius()-20);
 const segPad=g=>({x:g.x,y:g.y+40});
-const segH=g=>(S.lv.levee||0)+Math.floor(g.sacks/2);
+const segH=g=>Math.max(0,(S.lv.levee||0)-1)+Math.floor(g.sacks/2);
 let ty=null,zones=[],sandT=0;
-const tyWater=()=>Math.min(4,2+Math.floor((S.tyN||0)/2));
-const needSacks=g=>clamp((tyWater()-(S.lv.levee||0))*2,0,SACK_MAX);
+const tyWater=()=>Math.min(6,2+Math.floor((S.tyN||0)/2));
+const needSacks=g=>g.danger?clamp((tyWater()-Math.max(0,(S.lv.levee||0)-1))*2,2,SACK_MAX):0;
 const inZone=(x,y)=>zones.some(z=>dist(x,y,z.x,z.y)<z.r);
 const walkMul=()=>(inRiver(P.x,P.y)&&!onBridge(P.x,P.y)?.5:1)*(inZone(P.x,P.y)?.65:1);
 function startTyphoon(){
   em=null;hr=null;if(eq){eq.hs.forEach(h=>{h.person=false;h.st='ok'});eq=null}
-  ty={ph:'warn',t:60,W:tyWater(),lvl:0,flooded:new Set(),rescued:0,checked:false};
-  for(const g of segs)g.sacks=0;
-  const as=activeSegs();ty.atRisk=houses.filter(h=>active(h)&&h.y>riverY(h.x)&&as.some(g=>dist(h.x,h.y,g.x,g.y)<260));
-  snd('boss');buzz([80,60,80]);pop('台風が接近中！','あと60秒。川の堤防に土嚢を積もう');
+  ty={ph:'warn',t:75,W:tyWater(),lvl:0,flooded:new Set(),rescued:0,checked:false,boat:false};
+  for(const g of segs){g.sacks=0;g.danger=false}
+  const as=activeSegs();as.slice().sort(()=>Math.random()-.5).slice(0,Math.min(as.length,2+Math.floor((S.tyN||0)/2),5)).forEach(g=>g.danger=true);ty.atRisk=houses.filter(h=>active(h)&&h.y>riverY(h.x)&&as.some(g=>dist(h.x,h.y,g.x,g.y)<260));
+  const rk=ty.atRisk.slice().sort(()=>Math.random()-.5).slice(0,Math.min(ty.atRisk.length,3+Math.floor((S.tyN||0)/2),5));
+  ty.evT=rk.length;evac=rk.map(h=>({h,x:h.x+h.w/2+8,y:h.y+h.h/2+6,st:'wait',face:-1,kid:Math.random()<.4}));
+  snd('boss');buzz([80,60,80]);pop('台風が接近中！','あと75秒。住民を避難所へ誘導し、危ない堤防に土嚢を積もう');
 }
+let evac=[];
+function updEvac(dt){let lead=P;for(const e of evac){if(e.st==='wait'){if(dist(P.x,P.y,e.x,e.y)<42){e.st='follow';float(e.x,e.y-40,'ついていきます！','#fff',13);snd('new')}continue}
+  if(e.st!=='follow')continue;const d=dist(e.x,e.y,lead.x,lead.y);if(d>24){const sp=Math.min(260,(d-20)*6);e.x+=(lead.x-e.x)/d*sp*dt;e.y+=(lead.y-e.y)/d*sp*dt;e.face=lead.x>e.x?1:-1}e.mv=d>26;lead=e;
+  if(dist(e.x,e.y,SHELTER.x,SHELTER.y)<70){e.st='safe';ty.evN=(ty.evN||0)+1;drop('coin',e.x,e.y,3);addMerit(2);float(e.x,e.y-40,'避難完了！','#fff',14);snd('buy')}}}
+
 function updTyphoon(dt){
   if(!ty){
     if(S.tyT==null){if(S.earned>=60)S.tyT=40}
@@ -421,6 +430,7 @@ function updTyphoon(dt){
     return}
   ty.t-=dt;
   if(ty.ph==='warn'){
+    updEvac(dt);
     sandT+=dt;
     if(sandT>.06){sandT=0;
       if(dist(P.x,P.y,DEPOT.x,DEPOT.y)<40&&S.sand<cap()){S.sand++;snd('pick');bump('pBag')}
@@ -430,49 +440,55 @@ function updTyphoon(dt){
     if(ty.t<=0){ty.ph='storm';ty.t=26;
       for(const m of mons)m.dead=true;mons=[];
       for(const h of houses)if(h.st==='fire'){h.st='ok';h.burn=0}
-      for(const tr of trees)tr.fire=false;
-      pop('台風が来た！','雨でヒノコと火事は消えた。堤防を見守ろう');shake=6;snd('boss');buzz([60,40,60])}
+      for(const tr of trees)tr.fire=false;spawnLogs();
+      pop('台風が来た！','雨でヒノコと火事は消えた。強風で木が倒れて道をふさいだ');shake=6;snd('boss');buzz([60,40,60])}
   }else if(ty.ph==='storm'){
     const el=26-ty.t;ty.lvl=Math.min(ty.W,ty.W*el/12);
     if(!P.ride)moveBody(P,1,0,24,dt);
     if(el>=12&&!ty.checked){ty.checked=true;let br=0;
-      for(const g of activeSegs()){if(segH(g)<ty.W){br++;zones.push({x:g.x,y:g.y+75,r:12,max:170,grow:true})}}
+      for(const g of activeSegs()){if(g.danger&&segH(g)<ty.W){br++;zones.push({x:g.x,y:g.y+75,r:12,max:170,grow:true})}}
       shake=br?10:4;
       if(br){float(P.x,P.y-64,'堤防から水があふれた！','#ffd0c6',16);snd('hurt')}else{float(P.x,P.y-64,'土嚢が町を守った！','#fff',16);snd('buy')}}
     for(const z of zones){if(z.grow){z.r=Math.min(z.max,z.r+45*dt);if(z.r>=z.max)z.grow=false}
       for(const h of houses){if(h.st!=='ruin'&&h.st!=='flood'&&active(h)&&dist(h.x,h.y,z.x,z.y)<z.r){h.st='flood';ty.flooded.add(h)}}}
     if(ty.t<=0){ty.ph='after';ty.t=50;ty.lvl=0;
-      if(zones.length){const fl=[...ty.flooded].sort(()=>Math.random()-.5);fl.slice(0,Math.min(fl.length,1+zones.length)).forEach(h=>h.person=true);
-        pop('台風が去った',S.lv.truck?'屋根の上の人を助けよう。ポンプ車が水を抜く':'屋根の上の人を助けよう')}
+      const stay=new Set(evac.filter(e=>e.st!=='safe').map(e=>e.h));evac=evac.filter(e=>e.st==='safe');
+      if(zones.length){const fl=[...ty.flooded].sort((a,b)=>(stay.has(b)?1:0)-(stay.has(a)?1:0));fl.slice(0,Math.min(fl.length,1+zones.length+[...stay].filter(h=>ty.flooded.has(h)).length)).forEach(h=>h.person=true);
+        const z=zones.reduce((a,b)=>a.r>b.r?a:b);const a=Math.atan2(P.y-z.y,P.x-z.x);BOAT.x=z.x+Math.cos(a)*(z.r*.7);BOAT.y=z.y+Math.sin(a)*(z.r*.7);ty.boat=true;
+        pop('台風が去った','救助ボートで屋根の上の人を助けよう。倒木もどかそう')}
+      else if(logs.length){ty.ph='after';ty.t=40;pop('台風が去った','倒れた木をどかして道を開けよう')}
       else endTyphoon()}
   }else if(ty.ph==='after'){
     for(let i=zones.length-1;i>=0;i--){const z=zones[i];z.r-=2.5*dt;
       if(S.lv.truck>=1&&dist(T.x,T.y,z.x,z.y)<z.r+70)z.r-=(16+8*S.lv.truck)*dt;
       if(z.r<24){zones.splice(i,1);float(z.x,z.y,'水が引いた！','#fff',14)}}
     for(const h of houses){
-      if(h.person&&dist(P.x,P.y,h.x,h.y)<44)rescuePerson(h);
       if(h.st==='flood'&&!h.person&&!zones.some(z=>dist(h.x,h.y,z.x,z.y)<z.r))h.st='ok'}
-    if(ty.t<=0||(!zones.length&&!houses.some(h=>h.person)))endTyphoon();
+    if(ty.t<=0||(!zones.length&&!houses.some(h=>h.person)&&!logs.length))endTyphoon();
   }
 }
 function endTyphoon(){
   for(const h of houses){h.person=false;if(h.st==='flood')h.st='ok'}
   zones=[];
-  const tot=ty.atRisk.length,lost=ty.atRisk.filter(h=>ty.flooded.has(h)).length,safe=tot-lost,perfect=lost===0;
-  const bonus=safe*3*yl()+(perfect&&tot>0?10*yl():0);
+  if(P.ride==='boat')unboard();ty.boat=false;logs=[];const evN=ty.evN||0,evT=ty.evT||0;evac=[];
+  const tot=ty.atRisk.length,lost=ty.atRisk.filter(h=>ty.flooded.has(h)).length,safe=tot-lost,perfect=lost===0&&evN>=evT;
+  const bonus=safe*3*yl()+evN*3*yl()+(perfect&&tot>0?10*yl():0);
   if(bonus)drop('coin',P.x,P.y,bonus);
-  pop(perfect?'台風を完璧にのりきった！':'台風をのりきった',`守れた家 ${safe}/${tot}　${perfect?'土嚢で町を守った！':'堤防を強くすると次はもっと守れる'}`);
+  pop(perfect?'台風を完璧にのりきった！':'台風をのりきった',`守れた家 ${safe}/${tot}・避難 ${evN}/${evT}人`);
   snd('buy');burst(P.x,P.y-30,'#3d93db',30);addMerit(safe+(perfect?5:0));if(perfect&&tot>0)setTimeout(()=>giveBox('台風から町を守ったごほうび'),1500);
   S.tyN=(S.tyN||0)+1;S.tyT=360;for(const g of segs)g.sacks=0;S.sand=0;ty=null;
 }
 function tyGuide(){
   if(!ty){if(S.tyT!=null&&S.tyT<15)return{t:`天気予報：まもなく台風が来ます（${Math.ceil(S.tyT)}秒）`,tg:null,mode:'alert'};return null}
-  if(ty.ph==='warn'){const sec=Math.ceil(ty.t),as=activeSegs(),ok=as.filter(g=>g.sacks>=needSacks(g)).length;
+  if(ty.ph==='warn'){const sec=Math.ceil(ty.t),as=activeSegs().filter(g=>g.danger),ok=as.filter(g=>g.sacks>=needSacks(g)).length;
+    if(evac.some(e=>e.st==='follow'))return{t:`台風まで${sec}秒！ 避難所（詰所の前）まで連れて行こう`,tg:SHELTER,mode:'alert'};
+    const ew=nearest(evac,P.x,P.y,e=>e.st==='wait');if(ew)return{t:`台風まで${sec}秒！ まず住民を避難所へ誘導しよう（あと${evac.filter(e=>e.st==='wait').length}人）`,tg:ew,mode:'alert'};
     if(ok===as.length)return{t:`準備OK！ 台風まで${sec}秒。全部の堤防に土嚢を積めた`,tg:null,mode:'gold'};
     if(S.sand===0)return{t:`台風まで${sec}秒！ 土嚢置き場で土嚢を持とう（堤防 ${ok}/${as.length}）`,tg:DEPOT,mode:'alert'};
-    const g=nearest(as.filter(g=>g.sacks<needSacks(g)),P.x,P.y);return{t:`台風まで${sec}秒！ 赤く光る堤防に土嚢を積もう（${ok}/${as.length}）`,tg:segPad(g),mode:'alert'}}
+    const g=nearest(as.filter(g=>g.sacks<needSacks(g)),P.x,P.y);return{t:`台風まで${sec}秒！ 赤く光る危ない堤防に土嚢を積もう（${ok}/${as.length}）`,tg:segPad(g),mode:'alert'}}
   if(ty.ph==='storm')return{t:'台風が来た！ 川の水がどんどん増えている…',tg:null,mode:'alert'};
-  const p=nearest(houses,P.x,P.y,h=>h.person);if(p)return{t:'屋根の上で助けを待っている人がいる！ 近づいて助けよう',tg:p,mode:'alert'};
+  const p=nearest(houses,P.x,P.y,h=>h.person);if(p)return P.ride==='boat'?{t:'屋根の上の人のそばまでボートで行こう',tg:p,mode:'alert'}:{t:'救助ボートに乗って、屋根の上の人を助けよう',tg:ty.boat?BOAT:p,mode:'alert'};
+  const lg=nearest(logs,P.x,P.y);if(lg)return{t:P.ride?'車から降りて、倒れた木を斧でどかそう':'倒れた木に近づいて、斧でどかそう',tg:lg,mode:'alert'};
   const z=nearest(zones,P.x,P.y);if(z)return{t:S.lv.truck?'ポンプ車が水を抜いている。もう少し！':'水が引くまで待とう',tg:z};
   return null;
 }
@@ -673,8 +689,10 @@ function drawSoho(p,t){const on=dist(P.x,P.y,p.x,p.y)<34,cd=S.sohoCD>0;
 /* ===================== 乗り物・出動指令・高層ビル火災 ===================== */
 const RIDES={truck:{name:'ポンプ車',get v(){return T},own:()=>S.lv.truck>=1,spd:()=>truckSpeed()*1.5},
   amb:{name:'救急車',get v(){return VEH.amb},own:()=>!!S.lv.amb,spd:()=>290},
-  ladder:{name:'はしご車',get v(){return VEH.ladder},own:()=>!!S.lv.ladder,spd:()=>250}};
-const RIDE_TIP={truck:'ポンプ車で出動！ 近くの火とヒノコに放水する',amb:'救急車で出動！ 倒れた人のところへ',ladder:'はしご車で出動！ 高いところの火事と救助ができる'};
+  ladder:{name:'はしご車',get v(){return VEH.ladder},own:()=>!!S.lv.ladder,spd:()=>250},
+  boat:{name:'救助ボート',get v(){return BOAT},own:()=>boatOn(),spd:()=>(inZone(BOAT.x,BOAT.y)||inRiver(BOAT.x,BOAT.y))?230:70}};
+const boatOn=()=>!!((ty&&ty.boat)||rain);
+const RIDE_TIP={boat:'救助ボートで出動！ 水の中を速く進める',truck:'ポンプ車で出動！ 近くの火とヒノコに放水する',amb:'救急車で出動！ 倒れた人のところへ',ladder:'はしご車で出動！ 高いところの火事と救助ができる'};
 const rideV=()=>P.ride?RIDES[P.ride].v:null;
 function board(k){const v=RIDES[k].v;P.ride=k;P.x=v.x;P.y=v.y;P.spray=null}
 function unboard(){const v=rideV();P.ride=null;let x=v.x,y=v.y+34;if(blocked(x,y)){x=v.x;y=v.y}P.x=x;P.y=y}
@@ -709,6 +727,32 @@ function drawHighrise(t){const b=HRB;box(b.x,b.y,b.w,b.h,b.ht,'#dfe5ec','#9aa8ba
   const L=VEH.ladder;if(hr.near&&hr.aim){cx.strokeStyle='#c9ced8';cx.lineWidth=4;cx.beginPath();cx.moveTo(L.x,L.y-40);cx.lineTo(hr.aim.x,hr.aim.y+8);cx.stroke();cx.lineWidth=1.5;cx.beginPath();const n=10;for(let i=1;i<n;i++){const q=i/n,x=L.x+(hr.aim.x-L.x)*q,y=L.y-40+(hr.aim.y+8-L.y+40)*q;cx.moveTo(x-4,y);cx.lineTo(x+4,y)}cx.stroke();
     const f=hr.fires.find(f=>f.hp>0);if(f){const w=winXY(f.c,f.r);for(let i=0;i<3;i++){const q=((t/300)+i/3)%1;cx.fillStyle='rgba(61,147,219,.85)';cx.beginPath();cx.arc(L.x+(w.x-L.x)*q,L.y-40+(w.y-L.y+40)*q-Math.sin(q*Math.PI)*20,3.5,0,7);cx.fill()}}}
 }
+
+/* ===================== 避難所・倒木・救助ボート ===================== */
+let rain=null;
+const BOAT={x:0,y:0,face:1,moving:false};
+function spawnLogs(){logs=[];const n=3;for(let k=0;k<80&&logs.length<n;k++){const onH=Math.random()<.6,x=onH?(Math.random()*2-1)*(radius()*.7):0,y=onH?140:(Math.random()*2-1)*(radius()*.7);
+  if(Math.hypot(x,y)<200||PADS.some(p=>dist(x,y,p.x,p.y)<70)||logs.some(l=>dist(x,y,l.x,l.y)<120)||blocked(x,y)||dist(x,y,P.x,P.y)<60||inRiver(x,y))continue;logs.push({x,y,hp:3,t:0,vert:!onH})}}
+let logT=0;
+function updLogs(dt){if(!logs.length||P.ride)return;const l=nearest(logs,P.x,P.y);if(!l||dist(P.x,P.y,l.x,l.y)>58)return;
+  logT+=dt;P.chopping=l;if(logT>=chopInt()){logT=0;l.hp--;chips(l.x,l.y-6);snd('chop');if(l.hp<=0){logs.splice(logs.indexOf(l),1);drop('wood',l.x,l.y,3);drop('coin',l.x,l.y,2);addMerit(1);float(l.x,l.y-30,'道が通れるようになった！','#fff',13)}}}
+let boatT=0,wetW=0;
+function updBoat(dt){
+  if(P.ride==='boat'){const h=nearest(houses,BOAT.x,BOAT.y,o=>o.person&&o.st==='flood'&&dist(o.x,o.y,BOAT.x,BOAT.y)<60);if(h){boatT+=dt;if(boatT>1){boatT=0;rescuePerson(h);float(h.x,h.y-70,'ボートで救助！','#fff',13)}}else boatT=0;return}
+  if(!P.ride){const h=nearest(houses,P.x,P.y,o=>o.person&&o.st==='flood'&&dist(o.x,o.y,P.x,P.y)<50);if(h){wetW-=dt;if(wetW<=0){wetW=2.5;float(P.x,P.y-60,'水が深い！ 救助ボートで行こう','#ffd0c6',13)}}}}
+function drawBoat(t){const x=BOAT.x,y=BOAT.y,f=BOAT.face;shadow(x,y+4,30,6);cx.save();cx.translate(x,y);cx.scale(f,1);
+  cx.fillStyle='#ee7a2a';rr(-28,-14,56,16,8);cx.fill();cx.fillStyle='#ffb36b';rr(-24,-12,48,6,3);cx.fill();cx.fillStyle='#22355c';cx.fillRect(18,-20,3,8);
+  if(P.ride==='boat'){cx.fillStyle='#22355c';rr(-6,-30,12,14,4);cx.fill();cx.fillStyle='#f2c7a1';cx.beginPath();cx.arc(0,-34,5,0,7);cx.fill();cx.fillStyle='#e8ecf2';cx.beginPath();cx.arc(0,-36,5.5,Math.PI,0);cx.fill()}
+  cx.restore();label('救助ボート',x,y-46,10,'#fff','#ee7a2a')}
+function drawShelter(t){if(!ty||ty.ph!=='warn')return;const s=SHELTER,on=evac.some(e=>e.st==='follow');
+  cx.strokeStyle=on?'#2fa86b':'#5d6b84';cx.lineWidth=3;cx.setLineDash([7,5]);cx.beginPath();cx.arc(s.x,s.y,40,0,7);cx.stroke();cx.setLineDash([]);
+  cx.fillStyle='#2fa86b';rr(s.x-8,s.y-40,16,26,3);cx.fill();cx.fillStyle='#fff';cx.beginPath();cx.moveTo(s.x-4,s.y-22);cx.lineTo(s.x,s.y-32);cx.lineTo(s.x+4,s.y-22);cx.closePath();cx.fill();
+  label('避難所',s.x,s.y+50,11,'#fff','#2fa86b')}
+function drawEvacuee(e,t){drawPerson(e.x,e.y,e.face,e.kid?'#f3b648':'#8a7aa8',0,0,true,t,e.st==='follow'&&e.mv,false);
+  if(e.st==='wait'){const b=Math.sin(t/180)*3;label('避難させて！',e.x,e.y-44+b,10,'#fff','#e5432a')}}
+function drawLog(l,t){shadow(l.x,l.y+4,44,6);cx.save();cx.translate(l.x,l.y);if(l.vert)cx.rotate(Math.PI/2);
+  cx.fillStyle='#7a5536';rr(-40,-8,80,14,6);cx.fill();cx.fillStyle='#d9a46e';cx.beginPath();cx.ellipse(40,-1,4,7,0,0,7);cx.fill();cx.fillStyle='#2f6b4f';cx.beginPath();cx.ellipse(-36,-6,16,10,0,0,7);cx.fill();cx.restore();
+  if(l.hp<3){cx.fillStyle='rgba(27,39,64,.6)';rr(l.x-14,l.y-30,28,6,3);cx.fill();cx.fillStyle='#f3b648';cx.fillRect(l.x-13,l.y-29,26*l.hp/3,4)}}
 
 /* ===================== 更新 ===================== */
 function moveBody(o,ix,iy,sp,dt,r){
@@ -822,7 +866,7 @@ function update(dt){
       if(h.burn>45){h.st='ruin';h.t=40;float(h.x,h.y-40,'焼けてしまった…','#ffd0c6',13)}}
     else if(h.st==='ruin'){h.t-=dt;if(h.t<=0)h.st='ok'}}
 
-  updTyphoon(dt);updRail(dt);updEmerg(dt);updVehicles(dt);updForest(dt);updQuake(dt);updSoho(dt);updHighrise(dt);
+  updTyphoon(dt);updRail(dt);updEmerg(dt);updVehicles(dt);updForest(dt);updQuake(dt);updSoho(dt);updHighrise(dt);updLogs(dt);updBoat(dt);
   for(const w of workers)updWorker(w,dt);
 
   // 演出
@@ -976,13 +1020,14 @@ function drawLevees(t){
   for(const g of activeSegs()){const x=g.x,y=g.y;
     cx.fillStyle='#93a47f';rr(x-55,y-7-L*5,110,13+L*5,5);cx.fill();cx.fillStyle='#b3c39d';cx.fillRect(x-55,y-7-L*5,110,3);
     for(let i=0;i<g.sacks;i++){const lv=Math.floor(i/2),half=i%2;for(let j=0;j<3;j++){const sx=x-44+(half*3+j)*16+(lv%2)*6,sy=y-11-L*5-lv*7;cx.fillStyle='#cdb27a';rr(sx-7,sy-4,14,8,3);cx.fill();cx.fillStyle='#9c8350';cx.fillRect(sx-1,sy-4,2,8)}}
-    if(ty&&ty.ph==='warn'){const pd=segPad(g),need=needSacks(g),ok=g.sacks>=need,on=dist(P.x,P.y,pd.x,pd.y)<40,pl=ok?1:1+.07*Math.sin(t/150);
+    if(ty&&ty.ph==='warn'&&g.danger){const pd=segPad(g),need=needSacks(g),ok=g.sacks>=need,on=dist(P.x,P.y,pd.x,pd.y)<40,pl=ok?1:1+.07*Math.sin(t/150);
       if(!ok){const gr=cx.createRadialGradient(pd.x,pd.y,8,pd.x,pd.y,56);gr.addColorStop(0,'rgba(229,67,42,.45)');gr.addColorStop(1,'rgba(229,67,42,0)');cx.fillStyle=gr;cx.beginPath();cx.arc(pd.x,pd.y,56,0,7);cx.fill()}
       cx.fillStyle=on?'rgba(243,182,72,.55)':'rgba(255,255,255,.88)';cx.beginPath();cx.arc(pd.x,pd.y,28*pl,0,7);cx.fill();
       cx.strokeStyle=ok?'#2fa86b':'#e5432a';cx.lineWidth=2.5;cx.setLineDash([6,5]);cx.beginPath();cx.arc(pd.x,pd.y,28*pl,0,7);cx.stroke();cx.setLineDash([]);
+      label('危ない！',x,y-28,10,'#fff','#e5432a');
       if(ok)label('OK',pd.x,pd.y,15,'#2fa86b');else{icon('sand',pd.x-10,pd.y,.8);label(`${g.sacks}/${need}`,pd.x+11,pd.y,11,'#e5432a')}}
-    else if(ty&&ty.checked&&segH(g)<ty.W&&ty.ph!=='warn')label('あふれた',x,y-26,11,'#fff','#e5432a');
-    else if(ty&&ty.ph==='storm')label(segH(g)>=ty.W?'持ちこたえている':'あぶない',x,y-26,10,'#fff',segH(g)>=ty.W?'#2fa86b':'#e5432a');
+    else if(ty&&ty.checked&&g.danger&&segH(g)<ty.W&&ty.ph!=='warn')label('あふれた',x,y-26,11,'#fff','#e5432a');
+    else if(ty&&ty.ph==='storm'&&g.danger)label(segH(g)>=ty.W?'持ちこたえている':'あぶない',x,y-26,10,'#fff',segH(g)>=ty.W?'#2fa86b':'#e5432a');
   }
   if(S.tyT==null&&!ty)return;
   const d=DEPOT,warn=ty&&ty.ph==='warn';
@@ -1052,7 +1097,7 @@ function drawTruck(x,y,f,t,lit,ridden){
 function drawDrop(d){const y=d.y-d.z;cx.fillStyle='rgba(40,60,90,.15)';cx.beginPath();cx.ellipse(d.x,d.y+3,6,2.5,0,0,7);cx.fill();icon(d.k,d.x,y-4,d.k==='wood'?.75:.8)}
 
 function draw(t){
-  drawGround();drawRiver(t);drawZones(t);drawLevees(t);drawRails(t);
+  drawGround();drawRiver(t);drawZones(t);drawLevees(t);drawRails(t);drawShelter(t);
   const s=sc(),m=80/s;
   // 放水の範囲
   if(!P.ride){cx.strokeStyle='rgba(61,147,219,.18)';cx.lineWidth=2;cx.beginPath();cx.arc(P.x,P.y,hoseRange(),0,7);cx.stroke()}
@@ -1066,6 +1111,9 @@ function draw(t){
   for(const mo of mons)list.push({y:mo.y,f:()=>drawMon(mo,t)});
   for(const k of VEHS)if(S.lv[k])list.push({y:VEH[k].y,f:()=>drawVeh(k,VEH[k],t)});
   if(em)list.push({y:em.y,f:()=>drawPatient(em,t)});
+  for(const e of evac)list.push({y:e.y,f:()=>drawEvacuee(e,t)});
+  for(const l of logs)list.push({y:l.y,f:()=>drawLog(l,t)});
+  if(boatOn())list.push({y:BOAT.y,f:()=>drawBoat(t)});
   if(S.lv.truck>=1)list.push({y:T.y,f:()=>drawTruck(T.x,T.y,T.face,t,!!T.spray||T.moving||P.ride==='truck',P.ride==='truck')});
   if(!P.ride)list.push({y:P.y,f:()=>{if(P.hurt>0&&Math.floor(t/80)%2)return;drawPerson(P.x,P.y,P.face,'#22355c',S.wood,S.stone,false,t,P.moving,!!P.chopping,S.sand)}});
   for(const d of drops)list.push({y:d.y,f:()=>drawDrop(d)});
@@ -1152,7 +1200,7 @@ document.getElementById('menuBtn').addEventListener('click',()=>{audio();menu()}
 
 /* ===================== ループ ===================== */
 let last=performance.now();
-function resetWorld(){genWorld();ty=null;em=null;emT=40;eq=null;hr=null;hrT=100;ff=false;ffT=80;eqT=110;sh=null;for(const k of VEHS){VEH[k].x=PADMAP[k].x;VEH[k].y=PADMAP[k].y}zones=[];for(const g of segs)g.sacks=0;mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=maxHp();P.ride=null;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
+function resetWorld(){genWorld();ty=null;evac=[];logs=[];em=null;emT=40;eq=null;hr=null;hrT=100;ff=false;ffT=80;eqT=110;sh=null;for(const k of VEHS){VEH[k].x=PADMAP[k].x;VEH[k].y=PADMAP[k].y}zones=[];for(const g of segs)g.sacks=0;mons=[];drops=[];workers=[];parts=[];floats=[];P.x=START.x;P.y=START.y;if(S.px!=null&&!blocked(S.px,S.py)&&Math.hypot(S.px,S.py)<radius()-20){P.x=S.px;P.y=S.py}P.hp=maxHp();P.ride=null;T.x=PARK.x;T.y=PARK.y;cam.x=P.x;cam.y=P.y;monT=3;bossT=90;
   for(let i=0;i<S.crew;i++)addWorker(PADMAP.crew.x+(i%3)*12,PADMAP.crew.y);moved=false}
 function loop(t){
   const dt=Math.min(.05,(t-last)/1000);last=t;
