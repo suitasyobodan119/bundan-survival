@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-117LNT3E63"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-117LNT3E63");</script>
 <meta name="theme-color" content="#22355c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="消防団になって町を火事から守ろう。吹田市消防団のアクション育成ゲーム">
@@ -113,6 +115,8 @@ button,a,.qbtn{touch-action:manipulation}
 .tsucard{background:#fff5df;border-radius:12px;padding:10px 12px;font-size:13px;text-align:left;margin:6px 0 10px}.tsucard b{display:block;color:#8a5a00;font-size:12px}
 .tsuq{font-weight:800;text-align:left;margin:8px 0}.note.ng{color:#e5432a;font-weight:700}
 .real{margin:14px 0 6px;padding:12px;border-radius:14px;background:#f2f5f9;text-align:center}.real b{display:block;margin-bottom:8px}.real a.fb{display:block;margin:6px 0}.real span{display:block;font-size:11px;color:var(--mute);margin-top:6px;line-height:1.5}
+.rtabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0}.rtab{border:2px solid #dbe3ec;background:#f7f9fc;border-radius:10px;padding:8px;font:inherit;font-weight:700;color:var(--ink)}.rtab.on{border-color:var(--shu);background:#fde3dd}
+.ichi{background:#fff5df;border:2px solid #f3b648;border-radius:14px;padding:10px 12px;text-align:left;margin:4px 0}.ichi b{display:block;margin-bottom:4px}.ichi span{display:block;font-size:12px;line-height:1.6}.ichi a.fb{display:block;margin-top:6px;text-align:center}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row2 .btn{margin-top:8px}
 #taBar{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 152px);z-index:6;background:rgba(27,39,64,.88);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:8px 12px;pointer-events:none;font-variant-numeric:tabular-nums}
 #taBar.low{background:#e5432a;animation:tapulse 1s infinite}@keyframes tapulse{50%{transform:scale(1.06)}}
@@ -190,10 +194,10 @@ const UP={
   levee:{name:'堤防',icon:'levee',cost:[60,160,380],fx:l=>`堤防が${l}段高くなった！ 土嚢が少なくても町を守れる`},
   rail:{name:'トロッコ',icon:'cart',cost:[80,220,520],fx:l=>`${['','南','西','東'][l]}の森にトロッコ駅ができた！ 木を置くと自動で売ってくれる`},
   box:{name:'装備箱',icon:'chest',fx:()=>''},
-  d_mt:{name:'山田分団',icon:'mt',cost:[800],fx:()=>'森が多い分団。ときどき林野火災が起きる'},
+  d_mt:{name:'山田分団',icon:'mt',cost:[800],fx:()=>'大きな公園の森がある分団。ときどき林野火災が起きる'},
   d_res:{name:'千里丘分団',icon:'town',cost:[1200],fx:()=>'家が多い分団。ときどき地震が起きる'},
   d_s:{name:'岸部分団',icon:'lake',cost:[1800],fx:()=>'池のある分団。ゲリラ豪雨で浸水が起きる'},
-  d_n:{name:'千一分団',icon:'city',cost:[2500],fx:()=>'高層ビルが多い分団。高層ビル火災が起きる'},
+  d_n:{name:'豊津分団',icon:'city',cost:[2500],fx:()=>'オフィスビルが多い分団。高層ビル火災が起きる'},
   d_nw:{name:'千二分団',icon:'town',cost:[1000],fx:()=>'古い木造の家が多い分団。火がとなりへ燃え移る延焼火災が起きる'},
   d_ne:{name:'豊津分団',icon:'city',cost:[1500],fx:()=>'駅前の商店街がある分団。ヒノコの大群がやってくる'},
   d_sw:{name:'吹一分団',icon:'city',cost:[2200],fx:()=>'工場が多い分団。大きな工場火災が起きる'},
@@ -218,10 +222,10 @@ const PADS=[
   {id:'amb',x:318,y:62,unlock:()=>!!S.f.emerg},
   {id:'tank',x:318,y:-28,unlock:()=>(S.rank||0)>=1},
   {id:'ladder',x:318,y:-118,unlock:()=>(S.rank||0)>=2},
-  {id:'d_mt',x:-1000,y:190,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<2?'部長になると開ける':null},
+  {id:'d_mt',x:90,y:-1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<2?'部長になると開ける':null},
   {id:'d_res',x:1000,y:190,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<3?'副分団長になると開ける':null},
   {id:'d_s',x:90,y:1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<4?'分団長になると開ける':null},
-  {id:'d_n',x:90,y:-1000,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<5?'副団長になると開ける':null},
+  {id:'d_n',x:-1000,y:190,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<5?'副団長になると開ける':null},
   {id:'d_nw',x:-700,y:-720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<2?'部長になると開ける':null},
   {id:'d_ne',x:700,y:-720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<3?'副分団長になると開ける':null},
   {id:'d_sw',x:-700,y:720,unlock:()=>S.lv.yagura>=5,lock:()=>(S.rank||0)<4?'分団長になると開ける':null},
@@ -238,7 +242,7 @@ const BLD=[
   {id:'garage',x:212,y:-8,w:120,h:62,ht:36},
   {id:'tower',x:0,y:-128,w:52,h:30,ht:0},
   {id:'hr',x:300,y:330,w:96,h:60,ht:170},
-  {id:'hr',x:-230,y:-1470,w:96,h:60,ht:170},{id:'hr',x:235,y:-1580,w:96,h:60,ht:190},{id:'hr',x:215,y:-1300,w:96,h:60,ht:150},
+  {id:'hr',x:-1690,y:-30,w:96,h:60,ht:170},{id:'hr',x:-1230,y:-140,w:96,h:60,ht:190},{id:'hr',x:-1700,y:380,w:96,h:60,ht:150},
 ];
 const PILE={x:78,y:112}, PARK={x:212,y:52}, START={x:0,y:210};
 const ROOFS=['#6f86ad','#9b6b4f','#5f7d6a','#b0715f','#8a7aa8','#4f7f94'];
@@ -280,7 +284,7 @@ let monT=3,bossT=90,payT=0,sellT=0,pileT=0,shake=0,zoom=1,regenT=0;
 function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 const dist=(a,b,c,d)=>Math.hypot(a-c,b-d);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const DIST=[{id:'d_mt',name:'山田分団',x:-1450,y:120,r:520,col:'#eef3ee'},{id:'d_res',name:'千里丘分団',x:1450,y:120,r:520,col:'#f5f8fb'},{id:'d_s',name:'岸部分団',x:0,y:1450,r:520,col:'#f1f6f9'},{id:'d_n',name:'千一分団',x:0,y:-1450,r:520,col:'#f3f4f7'},{id:'d_nw',name:'千二分団',x:-1080,y:-1080,r:520,col:'#f4efe6'},{id:'d_ne',name:'豊津分団',x:1080,y:-1080,r:520,col:'#f3f3f8'},{id:'d_sw',name:'吹一分団',x:-1080,y:1080,r:520,col:'#eef0f2'},{id:'d_se',name:'吹二分団',x:1080,y:1080,r:520,col:'#f0f6ee'}];
+const DIST=[{id:'d_mt',name:'山田分団',x:0,y:-1450,r:520,col:'#eef3ee'},{id:'d_res',name:'千里丘分団',x:1450,y:120,r:520,col:'#f5f8fb'},{id:'d_s',name:'岸部分団',x:0,y:1450,r:520,col:'#f1f6f9'},{id:'d_n',name:'豊津分団',x:-1450,y:120,r:520,col:'#f3f4f7'},{id:'d_nw',name:'千二分団',x:-1080,y:-1080,r:520,col:'#f4efe6'},{id:'d_ne',name:'豊津分団',x:1080,y:-1080,r:520,col:'#f3f3f8'},{id:'d_sw',name:'吹一分団',x:-1080,y:1080,r:520,col:'#eef0f2'},{id:'d_se',name:'吹二分団',x:1080,y:1080,r:520,col:'#f0f6ee'}];
 DIST.forEach(d=>{d.bx=d.x;d.by=d.y-40;d.stop={x:d.x+95,y:d.y+70};d.sell={x:d.x-95,y:d.y+70};BLD.push({id:'dt',d,x:d.bx,y:d.by,w:116,h:60,ht:34});
   const pad={id:'dc_'+d.id,x:d.x,y:d.y+150,unlock:()=>!!S.lv[d.id]};PADS.push(pad);PADMAP[pad.id]=pad;UP[pad.id]={name:`${d.name}の団員`,icon:'crew'}});
 const LAKE={x:-190,y:1560,rx:140,ry:80};
@@ -311,8 +315,8 @@ function genWorld(){
     else if(v<.62)houses.push({x,y,w:42+r()*14,h:34+r()*8,ht:20,roof:ROOFS[Math.floor(r()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0});
   }
   const r2=mulberry(777);
-  for(let gx=-1960;gx<=-940;gx+=70)for(let gy=-420;gy<=660;gy+=70){const x=gx+(r2()-.5)*36,y=gy+(r2()-.5)*36;
-    if(dist(x,y,-1450,120)>500||Math.hypot(x,y)<1090||Math.abs(y-140)<44||Math.abs(y-riverY(x))<62)continue;const v=r2();
+  for(let gx=-520;gx<=520;gx+=70)for(let gy=-1970;gy<=-930;gy+=70){const x=gx+(r2()-.5)*36,y=gy+(r2()-.5)*36;
+    if(dist(x,y,0,-1450)>500||Math.hypot(x,y)<1090||Math.abs(x)<44)continue;const v=r2();
     if(v<.64){const t=mkTree(x,y);t.mt=true;trees.push(t)}else if(v<.69)houses.push({x,y,w:40,h:32,ht:18,roof:'#7a5a3a',st:'ok',hp:0,burn:0,t:0,sm:0})}
   for(let gx=940;gx<=1960;gx+=94)for(let gy=-420;gy<=660;gy+=94){const x=gx+(r2()-.5)*40,y=gy+(r2()-.5)*40;
     if(dist(x,y,1450,120)>500||Math.hypot(x,y)<1090||Math.abs(y-140)<46||Math.abs(y-riverY(x))<62)continue;const v=r2();
@@ -320,8 +324,8 @@ function genWorld(){
   for(let gx=-520;gx<=520;gx+=92)for(let gy=930;gy<=1970;gy+=92){const x=gx+(r2()-.5)*40,y=gy+(r2()-.5)*40;
     if(dist(x,y,0,1450)>500||Math.hypot(x,y)<1090)continue;const v=r2();
     if(v<.5)houses.push({x,y,w:44+r2()*12,h:34+r2()*8,ht:20,roof:ROOFS[Math.floor(r2()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,ds:true});else if(v<.72)trees.push(mkTree(x,y))}
-  for(let gx=-520;gx<=520;gx+=88)for(let gy=-1970;gy<=-930;gy+=88){const x=gx+(r2()-.5)*36,y=gy+(r2()-.5)*36;
-    if(dist(x,y,0,-1450)>500||Math.hypot(x,y)<1090)continue;const v=r2();
+  for(let gx=-1960;gx<=-940;gx+=88)for(let gy=-420;gy<=660;gy+=88){const x=gx+(r2()-.5)*36,y=gy+(r2()-.5)*36;
+    if(dist(x,y,-1450,120)>500||Math.hypot(x,y)<1090||Math.abs(y-140)<44||Math.abs(y-riverY(x))<62)continue;const v=r2();
     if(v<.6)houses.push({x,y,w:46+r2()*14,h:34+r2()*8,ht:22,roof:ROOFS[Math.floor(r2()*ROOFS.length)],st:'ok',hp:0,burn:0,t:0,sm:0,dn:true});else if(v<.7)trees.push(mkTree(x,y))}
   trees=trees.filter(t=>!nearDistStuff(t.x,t.y));houses=houses.filter(h=>!nearDistStuff(h.x,h.y));
   RIVER_HOUSES.forEach(([x,y],i)=>houses.push({x,y,w:46+(i%3)*5,h:36,ht:20,roof:ROOFS[i%ROOFS.length],st:'ok',hp:0,burn:0,t:0,sm:0}));
@@ -413,7 +417,7 @@ function updGuide(){
   else if(!S.f.sold)g=carry()>0?{t:'木材を詰所の「買取所」の丸に運ぶとコインになる',tg:sell}:{t:'木に近づいて木材を集めよう',tg:tree};
   else if(hr&&P.ride!=='ladder')g={t:`高層ビル火災！ はしご車に乗って出動しよう（あと${Math.ceil(hr.t)}秒）`,tg:VEH.ladder,mode:'alert'};
   else if(hr)g={t:`高層ビルに近づくと、はしごで放水と救助ができる（あと${Math.ceil(hr.t)}秒）`,tg:{x:HRB.x,y:HRB.y},mode:'alert'};
-  else if(rain&&rain.hs.some(h=>h.person)){const h=nearest(rain.hs,P.x,P.y,o=>o.person);g=P.ride==='boat'?{t:'浸水した家のそばまでボートで行こう',tg:h,mode:'alert'}:{t:`岸部分団で浸水！ 救助ボートに乗って助けよう（あと${Math.ceil(rain.t)}秒）`,tg:BOAT,mode:'alert'}}
+  else if(rain&&rain.hs.some(h=>h.person)){const h=nearest(rain.hs,P.x,P.y,o=>o.person);g=P.ride==='boat'?{t:'浸水した家のそばまでボートで行こう',tg:h,mode:'alert'}:{t:`${distName('d_s')}で浸水！ 救助ボートに乗って助けよう（あと${Math.ceil(rain.t)}秒）`,tg:BOAT,mode:'alert'}}
   else if(eq&&eq.hs.some(h=>h.person)){const h=nearest(eq.hs,P.x,P.y,o=>o.person);g={t:P.ride&&dist(P.x,P.y,h.x,h.y)<150?'車から降りて、倒れた家のそばに立とう':`地震！ 倒れた家のそばに立って、取り残された人を助けよう（あと${Math.ceil(eq.t)}秒）`,tg:h,mode:'alert'}}
   else if(trees.some(t=>t.fire)){const tr=nearest(trees,P.x,P.y,o=>o.fire);g={t:'山で林野火災！ 燃え広がる前に放水で消そう',tg:tr,mode:'alert'}}
   else if(em&&S.lv.amb&&P.ride!=='amb')g={t:`救急出動！ まず救急車に乗ろう（あと${Math.ceil(em.t)}秒）`,tg:VEH.amb,mode:'alert'};
@@ -496,7 +500,7 @@ function updEvac(dt){let lead=P;for(const e of evac){if(e.st==='wait'){if(dist(P
 
 function updTyphoon(dt){
   if(!ty){
-    if(S.tyT==null){if(S.earned>=60)S.tyT=40}
+    if(S.tyT==null){if(S.earned>=60&&S.lv.yagura>=2)S.tyT=40}
     else{S.tyT-=dt;if(S.tyT<=0)startTyphoon()}
     return}
   ty.t-=dt;
@@ -658,7 +662,7 @@ function updEmerg(dt){
     if(em.t<=0){float(em.x,em.y-40,'救急隊が病院へ運んだ','#fff',13);em=null}
     return}
   if(ty||S.lv.truck<1)return;
-  emT-=dt;if(emT>0)return;emT=80+Math.random()*40;
+  if(!S.ta&&S.lv.yagura<2)return;emT-=dt;if(emT>0)return;emT=80+Math.random()*40;
   for(let k=0;k<40;k++){const a=Math.random()*7,d=150+Math.random()*(radius()-200),x=Math.cos(a)*d,y=Math.sin(a)*d;
     if(blocked(x,y)||inRiver(x,y)||dist(x,y,P.x,P.y)<180||houses.some(h=>dist(x,y,h.x,h.y)<40)||PADS.some(p=>dist(x,y,p.x,p.y)<50))continue;
     em={x,y,t:90};snd('boss');buzz([50,50,50]);if(S.lv.amb)dispatch('救急出動！ 町で人が倒れている','救急車に乗って向かおう。着いたらクイズに答えて救命',[{k:'amb',label:'救急車で出動'},{k:'walk',label:'あとで行く'}]);else toast('救急出動！ 町で人が倒れている','ng');return}
@@ -709,7 +713,7 @@ function updForest(dt){
 }
 function startFF(){const c=trees.filter(t=>t.mt&&t.st==='up'&&!t.fire);if(c.length<3)return;const a=c[Math.floor(Math.random()*c.length)];
   igniteTree(a);c.filter(o=>o!==a&&dist(o.x,o.y,a.x,a.y)<100).slice(0,2).forEach(igniteTree);ff=true;ffSaved=0;ffLost=0;
-  snd('boss');buzz([80,60,80]);dispatch('山田分団から応援要請！ 林野火災','燃え広がる前に放水で消そう。ポンプ車はイベントの火事には自動で行きません',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat(busOpt('d_mt'),[{k:'walk',label:'歩いて向かう'}]))}
+  snd('boss');buzz([80,60,80]);dispatch(`${distName('d_mt')}から応援要請！ 林野火災`,'燃え広がる前に放水で消そう。ポンプ車はイベントの火事には自動で行きません',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat(busOpt('d_mt'),[{k:'walk',label:'歩いて向かう'}]))}
 function drawTreeFire(tr,t){const x=tr.x,y=tr.y-30,s=.9+tr.fb/50*.6;
   for(let i=0;i<7;i++){const a=t/110+i*1.6,ox=Math.sin(a)*7*s+(i-3)*4*s,oy=-Math.abs(Math.cos(a*1.3))*12*s;cx.fillStyle=i%2?'rgba(255,190,60,.92)':'rgba(240,90,40,.9)';cx.beginPath();cx.ellipse(x+ox,y+oy,6*s,12*s,0,0,7);cx.fill()}
   cx.fillStyle='rgba(255,240,170,.9)';cx.beginPath();cx.ellipse(x,y-4,4*s,8*s,0,0,7);cx.fill();
@@ -723,7 +727,7 @@ function updQuake(dt){
 }
 function startQuake(){const c=houses.filter(h=>h.res&&h.st==='ok').sort(()=>Math.random()-.5);if(c.length<6)return;
   const hs=c.slice(0,4);hs.forEach(h=>{h.st='collapsed';h.person=true;h.dig=0});c.slice(4,6).forEach(h=>{ignite(h);h.ev=true});
-  eq={t:120,shake:2.5,hs,saved:0};snd('boss');buzz([200,100,200]);dispatch('千里丘分団から応援要請！ 地震','倒れた家のそばに立つと救助できる（車からは降りてね）。火事も起きている',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat(busOpt('d_res'),[{k:'walk',label:'歩いて向かう'}]))}
+  eq={t:120,shake:2.5,hs,saved:0};snd('boss');buzz([200,100,200]);dispatch(`${distName('d_res')}から応援要請！ 地震`,'倒れた家のそばに立つと救助できる（車からは降りてね）。火事も起きている',(S.lv.truck?[{k:'truck',label:'ポンプ車で出動'}]:[]).concat(busOpt('d_res'),[{k:'walk',label:'歩いて向かう'}]))}
 function endQuake(){const e=eq;eq=null;e.hs.forEach(h=>{h.person=false;h.st='ok';h.dig=0});
   const all=e.saved>=e.hs.length;pop(all?'全員救助！':'地震の救助おわり',`助けた人 ${e.saved}/${e.hs.length}`);addMerit(all?6:1);if(all)support('d_res');if(all)setTimeout(()=>giveBox('地震で全員を助けた'),2400);
   setTimeout(()=>quiz('sonae','地震にそなえるクイズ','正解するとコインのごほうび',false,ok=>{if(ok)drop('coin',P.x,P.y,12*yl())}),1800)}
@@ -736,7 +740,7 @@ let sh=null,shAway=true;
 const SH_STEPS=['ホースを延ばせ！','結合！','放水始め！','標的を倒せ！'];
 function updSoho(dt){if(S.sohoCD>0)S.sohoCD=Math.max(0,S.sohoCD-dt);const p=PADMAP.soho;if(!unlocked(p))return;const d=dist(P.x,P.y,p.x,p.y);
   if(d>50)shAway=true;else if(d<32&&shAway&&!P.ride&&!(S.sohoCD>0)){shAway=false;
-    modal(`<h2>操法大会</h2><p class="lead">ポンプ車操法の大会に出場する？</p><p class="note">針が緑のところに来たら「タップ」。4つの動作を正確に決めよう。<br>金メダルなら装備箱がもらえる</p><button class="btn" data-act="shgo">出場する</button><button class="btn sub" data-act="close">やめておく</button>`)}}
+    modal(`<h2>操法大会</h2><p class="lead">どの操法で出場する？</p><p class="note">針が緑のところに来たら「タップ」。4つの動作を正確に決めよう。<br>金メダルなら装備箱がもらえる</p><button class="btn" data-act="shgo1">ポンプ車操法で出場</button><button class="btn" data-act="shgo2">小型ポンプ操法で出場</button><button class="btn sub" data-act="close">やめておく</button>`)}}
 function sohoStart(){sh={step:0,pts:0,t0:performance.now(),last:performance.now(),pos:0,dir:1,log:[],z:0,w:0,done:false};
   modal(`<h2>操法大会</h2><p class="shstep" id="shStep"></p><div class="shbar" id="shBar" data-act="shtap"><div class="shzone" id="shZone"></div><div class="shpin" id="shPin"></div></div><button class="btn" data-act="shtap">タップ！</button><div class="shlog" id="shLog"></div><p class="note" id="shTime">0.0秒</p>`);
   sohoStep();requestAnimationFrame(sohoLoop)}
@@ -752,7 +756,7 @@ function sohoTap(){if(!sh||sh.done)return;const d=Math.abs(sh.pos-sh.z);let r,cl
   const board=ALL9.filter(n=>n!==(S.home||'吹三')).map(n=>({n:n+'分団',t:5.5+Math.random()*7})).concat([{n:homeName()+'（きみ）',t:tot,me:true}]).sort((a,b)=>a.t-b.t);const place=board.findIndex(x=>x.me)+1;
   const medal=place===1?3:place<=3?2:place<=6?1:0,score=place;
   const coin=[5,20,40,80][medal]*yl();dmAdd('soho');if(medal===3)stAdd('sohog');addMerit([1,3,6,10][medal]);S.sohoCD=90;
-  setTimeout(()=>{modal(`<h2>分団対抗 操法大会</h2><div class="medal r${medal||0}">${['参加賞','銅メダル','銀メダル','金メダル'][medal]}</div><p class="lead">分団対抗 ${place}位！（記録 ${tot.toFixed(1)}秒）</p><table class="rk">${board.map((x,i)=>`<tr class="${x.me?'me':''}"><td>${i+1}位</td><td>${x.n}</td><td>${x.t.toFixed(1)}秒</td></tr>`).join('')}</table><p class="note">記録＝かかった時間＋OKは1秒・ミスは4秒のペナルティ</p><div class="shlog">${sh.log.join('')}</div><p class="note">ごほうび コイン${coin}枚${medal===3?'・装備箱':''}<br>次の大会は90秒後に出場できる</p><button class="btn" data-act="close">やったね！</button>`);
+  setTimeout(()=>{modal(`<h2>${shKind==='kogata'?'小型ポンプ操法 大会':'分団対抗 操法大会'}</h2><div class="medal r${medal||0}">${['参加賞','銅メダル','銀メダル','金メダル'][medal]}</div><p class="lead">分団対抗 ${place}位！（記録 ${tot.toFixed(1)}秒）</p><table class="rk">${board.map((x,i)=>`<tr class="${x.me?'me':''}"><td>${i+1}位</td><td>${x.n}</td><td>${x.t.toFixed(1)}秒</td></tr>`).join('')}</table><p class="note">記録＝かかった時間＋OKは1秒・ミスは4秒のペナルティ</p><div class="shlog">${sh.log.join('')}</div><p class="note">ごほうび コイン${coin}枚${medal===3?'・装備箱':''}<br>次の大会は90秒後に出場できる</p><button class="btn" data-act="close">やったね！</button>`);
     drop('coin',P.x,P.y,coin);if(medal===3)giveBox('操法大会 金メダル');snd(medal>=2?'buy':'new')},500)}
 function drawSoho(p,t){const on=dist(P.x,P.y,p.x,p.y)<34,cd=S.sohoCD>0;
   cx.fillStyle=on?'rgba(243,182,72,.5)':'rgba(255,255,255,.9)';cx.beginPath();cx.arc(p.x,p.y,32,0,7);cx.fill();
@@ -857,7 +861,7 @@ function startRain(){const c=houses.filter(h=>h.ds&&h.st==='ok').sort(()=>Math.r
   const zs=c.map(h=>({x:h.x,y:h.y,r:10,max:115,grow:true,ev:true}));zones.push(...zs);c.forEach(h=>{h.st='flood';h.person=true});
   const d=DIST.find(d=>d.id==='d_s'),z=zs[0],a=Math.atan2(d.stop.y-z.y,d.stop.x-z.x);BOAT.x=z.x+Math.cos(a)*(z.max*.85);BOAT.y=z.y+Math.sin(a)*(z.max*.85);for(const q of [d.stop,d.sell]){const dd=dist(BOAT.x,BOAT.y,q.x,q.y);if(dd<95){const k=(95-dd)/(dd||1);BOAT.x+=(BOAT.x-q.x)*k;BOAT.y+=(BOAT.y-q.y)*k}}
   rain={t:120,hs:c,zones:zs};snd('boss');buzz([80,60,80]);
-  dispatch('岸部分団から応援要請！ ゲリラ豪雨で浸水','家に取り残された人がいる。救助ボートに乗って助けよう',[...busOpt('d_s'),{k:'walk',label:'歩いて向かう'}])}
+  dispatch(`${distName('d_s')}から応援要請！ ゲリラ豪雨で浸水`,'家に取り残された人がいる。救助ボートに乗って助けよう',[...busOpt('d_s'),{k:'walk',label:'歩いて向かう'}])}
 function updRain(dt){if(!S.lv.d_s||ty)return;
   if(!rain){rainT-=dt;if(rainT<=0){rainT=150+Math.random()*40;startRain()}return}
   rain.t-=dt;for(const z of rain.zones){if(z.grow){z.r=Math.min(z.max,z.r+40*dt);if(z.r>=z.max)z.grow=false}if(P.ride==='truck'&&dist(T.x,T.y,z.x,z.y)<z.r+70)z.r=Math.max(40,z.r-(16+8*S.lv.truck)*dt)}
@@ -873,7 +877,7 @@ const RIVALS=['吹一','吹二','千一','千二','豊津','岸部','山田','�
 /* ===================== 所属分団・水利・ミニマップ ===================== */
 const ALL9=['吹一','吹二','吹三','千一','千二','豊津','岸部','山田','千里丘'];
 const homeName=()=>((S&&S.home)||'吹三')+'分団'+((S&&S.han&&typeof HANS!=='undefined'&&HANS.some(h=>h.parent===S.home&&h.name===S.han))?` ${S.han}班`:'');
-const DPREF={d_mt:'山田',d_res:'千里丘',d_s:'岸部',d_n:'千一',d_nw:'千二',d_ne:'豊津',d_sw:'吹一',d_se:'吹二'};
+const DPREF={d_mt:'山田',d_res:'岸部',d_s:'吹一',d_n:'豊津',d_nw:'千二',d_ne:'千里丘',d_sw:'吹二',d_se:'吹三'};
 function distName(id){let n=DPREF[id];if(S&&S.home===n)n=ALL9.find(x=>!Object.values(DPREF).includes(x));return n+'分団'}
 DIST.forEach(d=>{Object.defineProperty(d,'name',{get:()=>distName(d.id),configurable:true});Object.defineProperty(UP[d.id],'name',{get:()=>distName(d.id),configurable:true});Object.defineProperty(UP['dc_'+d.id],'name',{get:()=>distName(d.id)+'の団員',configurable:true})});
 function pickHome(first){modal(`<h2>所属分団を選ぼう</h2><p class="lead">きみはどの分団の団員？</p><div class="hgrid">${ALL9.map(n=>`<button class="hbtn ${(S.home||'吹三')===n?'on':''}" data-act="home" data-v="${n}">${n}分団</button>`).join('')}</div><p class="fic">あとからメニューで変えられます。※分団名はゲーム上のもので、実際の地域とは関係ありません。</p>${first?'':'<button class="btn sub" data-act="close">やめる</button>'}`)}
@@ -1344,6 +1348,89 @@ pickHome=(o=>function(first){o(first);const g=document.querySelector('.modal .hg
 taStart=(o=>function(){const hn=(TA_MAIN||S).han;o();S.han=hn||null;hanReset()})(taStart);
 update=(o=>function(dt){o(dt);updHan(dt)})(update);
 
+/* ===================== ランキング2分割・最初はシンプル・軽いモード・小型ポンプ操法・計測・お知らせ ===================== */
+function loopShort(){const li=LOOP.match(/<li>[\s\S]*?<\/li>/g)||[];return `<ul class="loop">${li.slice(0,4).join('')}</ul><details class="how"><summary>もっと知りたい人へ（出動・操法・台風など）</summary><ul class="loop">${li.slice(4).join('')}</ul></details><p class="note">さいしょは木を切って売るだけでOK！ できることは少しずつ増えていくよ</p>`}
+const ga=(n,p)=>{try{if(typeof window.gtag==='function')window.gtag('event',n,p||{})}catch(e){}};
+
+/* --- 7. ランキングを「やさしい」「ふつう」に分ける --- */
+let rankMode='e';
+const modeOf=x=>x&&x.e?'e':'n';
+const MODE_NAME={e:'やさしい',n:'ふつう'};
+function rankTabs(act,m){return `<div class="rtabs">${['e','n'].map(k=>`<button class="rtab ${m===k?'on':''}" data-act="${act}" data-v="${k}">${MODE_NAME[k]}モード</button>`).join('')}</div>`}
+taRankHtml=function(hi,m){m=m||rankMode;const r=taRank().filter(x=>modeOf(x)===m).slice(0,10);if(!r.length)return `<p class="note">${MODE_NAME[m]}モードは、まだ記録がないよ。1位をねらおう！</p>`;
+  return `<table class="rk">${r.map((x,i)=>`<tr class="${hi!=null&&i===hi?'me':''}"><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b||'')}</small></td><td>${x.s}枚</td></tr>`).join('')}</table>`};
+taIntro=function(){rankMode=taEasy?'e':'n';
+  modal(`<h2>3分チャレンジ</h2><p class="lead">3分間で、コインを何枚かせげるか！</p><ul class="loop"><li><span class="n">1</span><span>木を切って、買取所で売ろう</span></li><li><span class="n">2</span><span>ヒノコを倒して火事を消すと、コインがもらえる</span></li><li><span class="n">3</span><span>斧やホースを買うと、もっとかせげる！ 最後の1分は夜になるぞ</span></li></ul>
+  <button class="btn sub" data-act="taeasy">${taEasy?'やさしいモード（水が減らない）':'ふつうモード（水が減る）'}　▶ 切りかえ</button>
+  <h3 class="sec">ランキング <small>${MODE_NAME[rankMode]}モード</small></h3>${taRankHtml(null,rankMode)}
+  <button class="btn" data-act="tago">スタート！</button>${TA_FORM.csv?'<button class="btn sub" data-act="taall">🏆 フェスタ全体ランキング</button>':''}<button class="btn sub" data-act="tahome">所属：${homeName()}（変える）</button><button class="btn sub" data-act="taexit">ふつうに遊ぶ</button>`)};
+taEnd=function(){taScore=S.earned;const m=S.easy?'e':'n';const r=taRank().filter(x=>modeOf(x)===m),place=r.filter(x=>x.s>taScore).length+1;snd('buy');ga('ta_finish',{score:taScore,mode:MODE_NAME[m],branch:homeName()});
+  modal(`<h2>タイムアップ！</h2><div class="medal r${place<=3?4-place:0}">${taScore}枚</div><p class="lead">${MODE_NAME[m]}モード ${place<=10?`ランキング ${place}位に入るよ！`:'よくがんばった！'}</p><p class="note">消した火事 ${S.st.ext||0}件・倒したヒノコ ${S.st.kill||0}匹・斧 Lv${S.lv.axe}・ホース Lv${S.lv.hose}</p><label class="nm">なまえ（8文字まで）<input id="taName" maxlength="8" placeholder="ニックネーム" autocomplete="off"></label><button class="btn" data-act="tasave">ランキングに登録</button><button class="btn sub" data-act="tago">登録しないでもう一回</button>`)};
+taSave=function(){if(taSaved)return;const n=(document.getElementById('taName').value||'').trim().slice(0,8)||'ななし';taSaved=true;const m=S.easy?'e':'n';
+  const e={n,b:homeName(),s:taScore,d:Date.now(),e:m==='e'};sendForm(e);let r=taRank();r.push(e);r.sort((a,b)=>b.s-a.s||a.d-b.d);
+  const keep=[...r.filter(x=>modeOf(x)==='e').slice(0,50),...r.filter(x=>modeOf(x)==='n').slice(0,50)];try{localStorage.setItem(TA_KEY,JSON.stringify(keep))}catch(x){}
+  const list=r.filter(x=>modeOf(x)===m),i=list.indexOf(e);rankMode=m;
+  modal(`<h2>ランキング</h2><p class="lead">${MODE_NAME[m]}モード</p>${taRankHtml(i<10?i:null,m)}${i>=10?`<p class="note">${esc(n)}：${i+1}位（${taScore}枚）</p>`:''}<button class="btn" data-act="tanext">次の人へ</button><button class="btn sub" data-act="taexit">ふつうのモードにもどる</button><button class="btn sub mini" data-act="taclr">ランキングを消す（係の人用）</button>${REAL}`)};
+let allMode='e',allCache=null;
+showAll=async function(){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこみ中…</p>');allCache=null;
+  try{const rr=await fetch(TA_FORM.csv,{cache:'no-store'});const tx=await rr.text();allCache=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0)}catch(x){}
+  allMode=rankMode;allShow()};
+function allShow(){if(!allCache){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこめませんでした。電波のよいところで試してね</p><button class="btn" data-act="tanext">もどる</button>');return}
+  const r=allCache.filter(x=>modeOf(x)===allMode).sort((a,b)=>b.s-a.s).slice(0,10);
+  modal(`<h2>フェスタ全体ランキング</h2>${rankTabs('allm',allMode)}${r.length?`<table class="rk">${r.map((x,i)=>`<tr><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b)}</small></td><td>${x.s}枚</td></tr>`).join('')}</table>`:`<p class="note">${MODE_NAME[allMode]}モードの記録はまだないよ</p>`}<button class="btn" data-act="tanext">もどる</button>`)}
+
+/* --- 2. 最初はシンプルに --- */
+const early=()=>!S.ta&&S.lv.yagura<2;
+function tipOnce(k,title,body){S.tips=S.tips||{};if(S.tips[k]||S.ta||paused)return false;S.tips[k]=1;save();
+  modal(`<h2>${title}</h2><p class="lead" style="text-align:left;font-weight:500;line-height:1.7">${body}</p><button class="btn" data-act="close">わかった！</button>`);return true}
+updDay=(o=>function(dt){if(!S.ta&&(S.lv.yagura<2||!S.f.mon))return;const was=wasNight;o(dt);if(isNight()&&!was)tipOnce('night','🌙 はじめての夜','夜になると<b>ヒノコと火事が増える</b>よ。<br>そのかわり、ヒノコを倒すと<b>炎の石</b>が多めに出る。家の窓の明かりと赤い矢印をたよりに町を守ろう！')})(updDay);
+updTsu=(o=>function(dt){if(early())return;o(dt)})(updTsu);
+easyFill=function(){if(!(S.easy||early()))return;if(S.lv.truck&&T.w!=null)T.w=tCap();const L=VEH.ladder;if(S.lv.ladder&&L.w!=null)L.w=LCAP()};
+dmAdd=(o=>function(k,v){const before=S.daily&&S.daily.l?S.daily.l.filter(m=>m.done).length:0;o(k,v);const after=S.daily&&S.daily.l?S.daily.l.filter(m=>m.done).length:0;
+  if(after>before)setTimeout(()=>tipOnce('daily','📅 今日の任務','<b>今日の任務</b>をひとつ達成したよ！<br>任務は毎日3つかわる。MENUから見られるよ。3つぜんぶ達成すると<b>装備箱</b>がもらえる'),1200)})(dmAdd);
+checkBadges=(o=>function(s){const n=o(s);if(n&&!s)setTimeout(()=>tipOnce('badge','🏅 バッジ','はじめての<b>バッジ</b>をゲット！<br>バッジは全部で20種類以上。MENUで集めたバッジを見られるよ'),1500);return n})(checkBadges);
+
+/* --- 6. 軽いモード --- */
+resize=(o=>function(){o();if(S&&S.lite&&DPR>1){DPR=1;cv.width=W;cv.height=H}})(resize);
+drawNight=(o=>function(t){if(!S.lite)return o(t);const d=nightAmt();if(d<=0)return;cx.save();cx.setTransform(1,0,0,1,0,0);cx.fillStyle=`rgba(14,22,58,${.38*d})`;cx.fillRect(0,0,cv.width,cv.height);cx.restore()})(drawNight);
+let fpsAcc=0,fpsN=0,fpsLast=0,fpsT=0;
+function fpsCheck(){const now=performance.now();if(fpsLast){const d=now-fpsLast;if(d<500&&!paused){fpsAcc+=d;fpsN++}}fpsLast=now;
+  if(fpsN>=240){const avg=fpsAcc/fpsN;fpsAcc=0;fpsN=0;if(avg>34&&!S.lite&&!S.liteAsked&&!paused){S.liteAsked=true;save();
+    modal(`<h2>動きが重いみたい</h2><p class="lead">「軽いモード」にすると、動きがなめらかになるかも</p><p class="note">画面が少しあらくなり、夜の明かりがシンプルになります。MENUからいつでも切りかえられます</p><button class="btn" data-act="liteon">軽いモードにする</button><button class="btn sub" data-act="close">このままでいい</button>`)}}}
+hud=(o=>function(){o();fpsCheck()})(hud);
+update=(o=>function(dt){o(dt);if(S.lite&&parts.length>50)parts.splice(0,parts.length-50)})(update);
+function setLite(v){S.lite=v;save();resize();toast(v?'軽いモードにしたよ':'軽いモードをやめたよ','ok')}
+
+/* --- 3. 小型ポンプ操法 --- */
+let shKind='pump';
+const SH_PUMP=['ホースを延ばせ！','結合！','放水始め！','標的を倒せ！'],SH_KOGATA=['吸管を水利に投入！','ポンプにホースを結合！','エンジン始動・送水！','放水！ 標的を倒せ！'];
+function sohoBegin(kind){shKind=kind;SH_STEPS.splice(0,4,...(kind==='kogata'?SH_KOGATA:SH_PUMP));sohoStart();const h=document.querySelector('.modal h2');if(h)h.textContent=kind==='kogata'?'小型ポンプ操法':'ポンプ車操法';ga('soho_start',{kind})}
+
+/* --- 5. 一日分団長体験のお知らせ（10月14日まで） --- */
+const ICHI_END=new Date(2026,9,14,23,59,59).getTime();
+const ichiOn=()=>Date.now()<=ICHI_END;
+const ICHI=()=>ichiOn()?`<div class="ichi"><b>📣 一日分団長を体験しませんか？</b><span>11月9日〜13日 18:30〜19:30／市内在住の18〜45歳（6歳以上の子ども同伴OK）／各分団 先着1組2人まで</span><span>申し込みしめきり <b>10月14日</b>（申込は吹田市消防本部 企画総務室・くわしくは市報すいた）</span><a class="fb ig" href="${IG_URL}" target="_blank" rel="noopener">くわしくは公式Instagramへ</a></div>`:'';
+menu=(o=>function(){o();if(S.ta)return;const bx=document.querySelector('.modal .box');if(!bx)return;const h=bx.querySelector('h2');
+  const d=document.createElement('div');d.innerHTML=`${ICHI()}<div class="row2"><button class="btn sub" data-act="lite">軽いモード：${S.lite?'ON':'OFF'}</button><button class="btn sub" data-act="kogata">🚒 小型ポンプ操法</button></div>`;if(h)h.after(d)})(menu);
+intro=(o=>function(){o();const bx=document.querySelector('.modal .box');if(!bx||!ichiOn())return;const d=document.createElement('div');d.innerHTML=ICHI();bx.appendChild(d)})(intro);
+
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='taeasy'){rankMode=taEasy?'e':'n';taIntro()}
+  else if(a==='allm'){allMode=b.dataset.v;allShow()}
+  else if(a==='lite'){setLite(!S.lite);b.textContent=`軽いモード：${S.lite?'ON':'OFF'}`}
+  else if(a==='liteon'){setLite(true);closeModal()}
+  else if(a==='kogata'){if((S.rank||0)<1&&!S.ta){toast('班長になると出場できるよ','ng');return}if(S.sohoCD>0){toast(`あと${Math.ceil(S.sohoCD)}秒で出場できる`,'ng');return}closeModal();setTimeout(()=>sohoBegin('kogata'),50)}
+  else if(a==='shgo2'){sohoBegin('kogata')}
+  else if(a==='shgo1'){sohoBegin('pump')}});
+
+/* --- 4. 計測（Googleアナリティクス） --- */
+setHome=(o=>function(n){o(n);ga('select_branch',{branch:homeName()})})(setHome);
+taStart=(o=>function(){o();ga('ta_start',{mode:S.easy?'やさしい':'ふつう',branch:homeName()})})(taStart);
+rankUp=(o=>function(){o();ga('rank_up',{rank:RANKS[S.rank]})})(rankUp);
+levelUp=(o=>function(id){const before=JSON.stringify(S.lv);o(id);if(id==='yagura')ga('yagura_up',{level:S.lv.yagura});else if(id.startsWith('d_')&&!id.startsWith('dlv'))ga('district_open',{district:distName(id)});else if(['truck','amb','ladder','tank'].includes(id))ga('vehicle',{id})})(levelUp);
+cprEnd=(o=>function(){const c=cpr;o();if(c)ga('cpr_result',{taps:c.taps.length})})(cprEnd);
+goDispatch=(o=>function(k){ga('dispatch',{how:k});o(k)})(goDispatch);
+
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
 let riverW=0;
@@ -1534,7 +1621,7 @@ function drawGround(){
   cx.fillStyle='#dde5ed';cx.beginPath();cx.ellipse(0,40,300,215,0,0,7);cx.fill();
   cx.fillStyle='#cfd8e2';cx.fillRect(-R,128,R*2,24);cx.fillRect(-12,-R,24,R*2);
   cx.fillStyle='#e5ebf1';for(let x=-R;x<R;x+=40)cx.fillRect(x,139,20,2);
-  for(const d of openD()){cx.fillStyle='#cfd8e2';if(d.id==='d_s')cx.fillRect(-12,1000,24,d.by-30-1000);else if(d.id==='d_n')cx.fillRect(-12,d.by+30,24,-1000-(d.by+30));else cx.fillRect(d.x-d.r,128,d.r*2,24)}
+  for(const d of openD()){cx.fillStyle='#cfd8e2';if(d.id==='d_s')cx.fillRect(-12,1000,24,d.by-30-1000);else if(d.id==='d_mt')cx.fillRect(-12,d.by+30,24,-1000-(d.by+30));else cx.fillRect(d.x-d.r,128,d.r*2,24)}
   if(S.lv.d_s)drawLake();
 }
 let fogC=null,fogX=null;
@@ -1787,7 +1874,7 @@ const LOOP=`<ul class="loop">
 <li><span class="n">7</span><span>はしご車とポンプ車は水を積んだ分しか放水できない。<b>消火栓・防火水槽・川</b>の近くに止めると補給できる</span></li>
 <li><span class="n">8</span><span><b>台風</b>が来る前に、川の堤防に<b>土嚢</b>を積んで町を守ろう</span></li>
 </ul>`;
-function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>はじめに所属する分団を選んでね</p>${LOOP}${WARN}<button class="btn" data-act="start">スタート</button><button class="btn sub" data-act="ta">🏆 3分チャレンジ（フェスタ用）</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
+function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団になって、町を火事から守ろう！<br>はじめに所属する分団を選んでね</p>${loopShort()}${WARN}<button class="btn" data-act="start">スタート</button><button class="btn sub" data-act="ta">🏆 3分チャレンジ（フェスタ用）</button><p class="note">画面のどこでも、指でなぞると歩きます<br>遊んだら MENU の「感想を送る」から感想を教えてね</p><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
 function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}${eqp(k)?'+'+eqp(k):''}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
 function rankHtml(){const nx=S.rank<6?`次の「${RANKS[S.rank+1]}」まで 功績あと${RANK_REQ[S.rank+1]-S.merit}`:'最高の階級！';return `<p class="lead">階級：${RANKS[S.rank]}（功績 ${S.merit}）</p><div class="prog"><i style="width:${rankProg()*100}%"></i></div><p class="note">${nx}<br>火を消す・ヒノコを倒す・人を助ける・台風から町を守ると功績がたまる</p>`}
@@ -1817,7 +1904,7 @@ function loop(t){
   if(!paused&&!document.hidden)update(dt);
   zoom+=((P.ride?.85:1)-zoom)*Math.min(1,dt*3);
   cam.x+=(P.x-cam.x)*Math.min(1,dt*6);cam.y+=(P.y-cam.y)*Math.min(1,dt*6);
-  updGuide();hud();draw(t);if(++miniT%3===0)drawMini();requestAnimationFrame(loop);
+  updGuide();hud();draw(t);if(++miniT%(S.lite?8:3)===0)drawMini();requestAnimationFrame(loop);
 }
 function boot(data){
   S=(data&&data.S)||load()||fresh();
