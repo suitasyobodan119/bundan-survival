@@ -8,6 +8,12 @@
 <meta name="theme-color" content="#22355c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="消防団になって町を火事から守ろう。吹田市消防団のアクション育成ゲーム">
+<meta property="og:type" content="website">
+<meta property="og:title" content="分団サバイバル｜吹田市消防団のゲーム">
+<meta property="og:description" content="消防団になって町を火事から守ろう。吹田市消防団のアクション育成ゲーム">
+<meta property="og:url" content="https://suitasyobodan119.github.io/bundan-survival/">
+<meta property="og:image" content="https://suitasyobodan119.github.io/bundan-survival/ogp.png">
+<meta name="twitter:card" content="summary_large_image">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>分団サバイバル</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -117,6 +123,7 @@ button,a,.qbtn{touch-action:manipulation}
 .real{margin:14px 0 6px;padding:12px;border-radius:14px;background:#f2f5f9;text-align:center}.real b{display:block;margin-bottom:8px}.real a.fb{display:block;margin:6px 0}.real span{display:block;font-size:11px;color:var(--mute);margin-top:6px;line-height:1.5}
 .rtabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0}.rtab{border:2px solid #dbe3ec;background:#f7f9fc;border-radius:10px;padding:8px;font:inherit;font-weight:700;color:var(--ink)}.rtab.on{border-color:var(--shu);background:#fde3dd}
 .ichi{background:#fff5df;border:2px solid #f3b648;border-radius:14px;padding:10px 12px;text-align:left;margin:4px 0}.ichi b{display:block;margin-bottom:4px}.ichi span{display:block;font-size:12px;line-height:1.6}.ichi a.fb{display:block;margin-top:6px;text-align:center}
+a.fb.fbbig{display:block;text-align:center;font-size:17px;padding:14px 10px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row2 .btn{margin-top:8px}
 #taBar{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 152px);z-index:6;background:rgba(27,39,64,.88);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:8px 12px;pointer-events:none;font-variant-numeric:tabular-nums}
 #taBar.low{background:#e5432a;animation:tapulse 1s infinite}@keyframes tapulse{50%{transform:scale(1.06)}}
@@ -1431,6 +1438,17 @@ rankUp=(o=>function(){o();ga('rank_up',{rank:RANKS[S.rank]})})(rankUp);
 levelUp=(o=>function(id){const before=JSON.stringify(S.lv);o(id);if(id==='yagura')ga('yagura_up',{level:S.lv.yagura});else if(id.startsWith('d_')&&!id.startsWith('dlv'))ga('district_open',{district:distName(id)});else if(['truck','amb','ladder','tank'].includes(id))ga('vehicle',{id})})(levelUp);
 cprEnd=(o=>function(){const c=cpr;o();if(c)ga('cpr_result',{taps:c.taps.length})})(cprEnd);
 goDispatch=(o=>function(k){ga('dispatch',{how:k});o(k)})(goDispatch);
+
+/* ===================== 感想のおねがい ===================== */
+const FB_URL='https://forms.gle/12nXo4Chy7ChWuWP6';
+const FB_BTN=(t)=>`<a class="fb fbbig" href="${FB_URL}" target="_blank" rel="noopener" data-act="fbsent">${t||'✉️ 感想を送る（1分）'}</a>`;
+function fbAsk(){if(S.fbAsked||S.ta||paused)return;S.fbAsked=1;save();ga('fb_prompt',{});
+  modal(`<h2>遊んでくれてありがとう！</h2><p class="lead">よかったら、感想を教えてください</p><p class="note">「おもしろかった？」「分かりにくかったところ」など、4つだけ。1分で終わります。<br>いただいた感想で、ゲームをもっと良くしていきます</p>${FB_BTN()}<button class="btn sub" data-act="close">あとで</button>`)}
+let playAcc=0;
+update=(o=>function(dt){o(dt);if(S.ta)return;playAcc+=dt;if(playAcc>5){S.playT=(S.playT||0)+playAcc;playAcc=0;if(S.playT>600&&!S.fbAsked)fbAsk()}})(update);
+taSave=(o=>function(){o();const bx=document.querySelector('.modal .box');if(!bx)return;const d=document.createElement('div');d.innerHTML=`<p class="note" style="margin:6px 0 0">遊んだ感想をきかせてね</p>${FB_BTN()}`;const nx=bx.querySelector('[data-act=tanext]');if(nx)bx.insertBefore(d,nx);else bx.appendChild(d)})(taSave);
+menu=(o=>function(){o();if(S.ta)return;const bx=document.querySelector('.modal .box');if(!bx)return;const h=bx.querySelector('h2');const d=document.createElement('div');d.innerHTML=FB_BTN('✉️ 感想を送る（1分）・ゲームを良くするために教えてね');if(h)h.after(d)})(menu);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act=fbsent]');if(!b)return;S.fbAsked=1;S.fbSent=(S.fbSent||0)+1;save();ga('fb_open',{})});
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
