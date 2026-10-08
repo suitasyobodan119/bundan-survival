@@ -740,20 +740,20 @@ let sh=null,shAway=true;
 const SH_STEPS=['ホースを延ばせ！','結合！','放水始め！','標的を倒せ！'];
 function updSoho(dt){if(S.sohoCD>0)S.sohoCD=Math.max(0,S.sohoCD-dt);const p=PADMAP.soho;if(!unlocked(p))return;const d=dist(P.x,P.y,p.x,p.y);
   if(d>50)shAway=true;else if(d<32&&shAway&&!P.ride&&!(S.sohoCD>0)){shAway=false;
-    modal(`<h2>操法大会</h2><p class="lead">どの操法で出場する？</p><p class="note">針が緑のところに来たら「タップ」。4つの動作を正確に決めよう。<br>金メダルなら装備箱がもらえる</p><button class="btn" data-act="shgo1">ポンプ車操法で出場</button><button class="btn" data-act="shgo2">小型ポンプ操法で出場</button><button class="btn sub" data-act="close">やめておく</button>`)}}
+    modal(`<h2>操法大会</h2><p class="lead">どの操法で出場する？</p><p class="note">針が緑のところに来たら「タップ」。動作を正確に決めよう。金メダルなら装備箱がもらえる<br>ポンプ車操法はホースを2線のばすので動作が多く、小型ポンプ操法は1線なので短い</p><button class="btn" data-act="shgo1">ポンプ車操法（5人・ホース2線・6動作）</button><button class="btn" data-act="shgo2">小型ポンプ操法（4人・ホース1線・4動作）</button><button class="btn sub" data-act="close">やめておく</button>`)}}
 function sohoStart(){sh={step:0,pts:0,t0:performance.now(),last:performance.now(),pos:0,dir:1,log:[],z:0,w:0,done:false};
   modal(`<h2>操法大会</h2><p class="shstep" id="shStep"></p><div class="shbar" id="shBar" data-act="shtap"><div class="shzone" id="shZone"></div><div class="shpin" id="shPin"></div></div><button class="btn" data-act="shtap">タップ！</button><div class="shlog" id="shLog"></div><p class="note" id="shTime">0.0秒</p>`);
   sohoStep();requestAnimationFrame(sohoLoop)}
-function sohoStep(){sh.w=[26,22,17,13][sh.step];sh.z=20+Math.random()*60;sh.speed=[75,95,120,145][sh.step];
+function sohoStep(){const six=SH_STEPS.length>4;sh.w=(six?[26,24,20,17,15,13]:[26,22,17,13])[sh.step];sh.z=20+Math.random()*60;sh.speed=(six?[75,85,100,115,130,145]:[75,95,120,145])[sh.step];
   document.getElementById('shStep').textContent=`${sh.step+1}. ${SH_STEPS[sh.step]}`;const z=document.getElementById('shZone');z.style.left=(sh.z-sh.w/2)+'%';z.style.width=sh.w+'%'}
 function sohoLoop(now){if(!sh||sh.done)return;const dt=Math.min(.05,(now-sh.last)/1000);sh.last=now;sh.pos+=sh.dir*sh.speed*dt;if(sh.pos>100){sh.pos=100;sh.dir=-1}if(sh.pos<0){sh.pos=0;sh.dir=1}
   const pin=document.getElementById('shPin');if(!pin)return;pin.style.left=sh.pos+'%';document.getElementById('shTime').textContent=((now-sh.t0)/1000).toFixed(1)+'秒';requestAnimationFrame(sohoLoop)}
 function sohoTap(){if(!sh||sh.done)return;const d=Math.abs(sh.pos-sh.z);let r,cls;
   if(d<=sh.w/6){r='ピタッ！';cls='p';sh.pts+=3;snd('buy')}else if(d<=sh.w/2){r='OK';cls='';sh.pts+=2;sh.okc=(sh.okc||0)+1;snd('coin')}else{r='ミス';cls='m';sh.miss=(sh.miss||0)+1;snd('hurt')}
   sh.log.push(`<span class="${cls}">${r}</span>`);document.getElementById('shLog').innerHTML=sh.log.join('');
-  sh.step++;if(sh.step<4){sohoStep();return}
+  sh.step++;if(sh.step<SH_STEPS.length){sohoStep();return}
   sh.done=true;const sec=(performance.now()-sh.t0)/1000,tot=sec+(sh.okc||0)*1+(sh.miss||0)*4;
-  const board=ALL9.filter(n=>n!==(S.home||'吹三')).map(n=>({n:n+'分団',t:5.5+Math.random()*7})).concat([{n:homeName()+'（きみ）',t:tot,me:true}]).sort((a,b)=>a.t-b.t);const place=board.findIndex(x=>x.me)+1;
+  const board=ALL9.filter(n=>n!==(S.home||'吹三')).map(n=>({n:n+'分団',t:(SH_STEPS.length>4?8:5.5)+Math.random()*(SH_STEPS.length>4?9:7)})).concat([{n:homeName()+'（きみ）',t:tot,me:true}]).sort((a,b)=>a.t-b.t);const place=board.findIndex(x=>x.me)+1;
   const medal=place===1?3:place<=3?2:place<=6?1:0,score=place;
   const coin=[5,20,40,80][medal]*yl();dmAdd('soho');if(medal===3)stAdd('sohog');addMerit([1,3,6,10][medal]);S.sohoCD=90;
   setTimeout(()=>{modal(`<h2>${shKind==='kogata'?'小型ポンプ操法 大会':'分団対抗 操法大会'}</h2><div class="medal r${medal||0}">${['参加賞','銅メダル','銀メダル','金メダル'][medal]}</div><p class="lead">分団対抗 ${place}位！（記録 ${tot.toFixed(1)}秒）</p><table class="rk">${board.map((x,i)=>`<tr class="${x.me?'me':''}"><td>${i+1}位</td><td>${x.n}</td><td>${x.t.toFixed(1)}秒</td></tr>`).join('')}</table><p class="note">記録＝かかった時間＋OKは1秒・ミスは4秒のペナルティ</p><div class="shlog">${sh.log.join('')}</div><p class="note">ごほうび コイン${coin}枚${medal===3?'・装備箱':''}<br>次の大会は90秒後に出場できる</p><button class="btn" data-act="close">やったね！</button>`);
@@ -1403,13 +1403,14 @@ function setLite(v){S.lite=v;save();resize();toast(v?'軽いモードにした�
 
 /* --- 3. 小型ポンプ操法 --- */
 let shKind='pump';
-const SH_PUMP=['ホースを延ばせ！','結合！','放水始め！','標的を倒せ！'],SH_KOGATA=['吸管を水利に投入！','ポンプにホースを結合！','エンジン始動・送水！','放水！ 標的を倒せ！'];
-function sohoBegin(kind){shKind=kind;SH_STEPS.splice(0,4,...(kind==='kogata'?SH_KOGATA:SH_PUMP));sohoStart();const h=document.querySelector('.modal h2');if(h)h.textContent=kind==='kogata'?'小型ポンプ操法':'ポンプ車操法';ga('soho_start',{kind})}
+const SH_PUMP=['吸管を防火水そうに投入！','第1線 ホースを3本延長！','第1線 筒先を結合・放水始め！','第2線 ホースを3本延長！','第2線 筒先を結合・放水始め！','2本の筒先で標的を倒せ！'],SH_KOGATA=['小型ポンプを据えて吸管を投入！','ホースを3本延長（1線）！','筒先を結合・エンジン始動！','放水！ 標的を倒せ！'];
+function sohoBegin(kind){shKind=kind;SH_STEPS.splice(0,SH_STEPS.length,...(kind==='kogata'?SH_KOGATA:SH_PUMP));sohoStart();const h=document.querySelector('.modal h2');if(h)h.textContent=kind==='kogata'?'小型ポンプ操法':'ポンプ車操法';ga('soho_start',{kind})}
 
 /* --- 5. 一日分団長体験のお知らせ（10月14日まで） --- */
 const ICHI_END=new Date(2026,9,14,23,59,59).getTime();
 const ichiOn=()=>Date.now()<=ICHI_END;
-const ICHI=()=>ichiOn()?`<div class="ichi"><b>📣 一日分団長を体験しませんか？</b><span>11月9日〜13日 18:30〜19:30／市内在住の18〜45歳（6歳以上の子ども同伴OK）／各分団 先着1組2人まで</span><span>申し込みしめきり <b>10月14日</b>（申込は吹田市消防本部 企画総務室・くわしくは市報すいた）</span><a class="fb ig" href="${IG_URL}" target="_blank" rel="noopener">くわしくは公式Instagramへ</a></div>`:'';
+const ICHI_URL='https://www.city.suita.osaka.jp/anzen/1017917/1017946/1045026.html';
+const ICHI=()=>ichiOn()?`<div class="ichi"><b>📣 一日分団長を体験しませんか？</b><span>消防団といっしょに、消防団の車で吹田市内を巡回する体験です</span><span>11月9日（月）〜13日（金）の各日 18:30〜19:30／無料</span><span>吹田市内在住の18〜45歳＋同伴者1人（6〜45歳）／各日 先着1組2人</span><span>申し込みしめきり <b>10月14日（水）23:59</b>（吹田市の電子申込）</span><a class="fb ig" href="${ICHI_URL}" target="_blank" rel="noopener">申し込み・くわしくはこちら</a></div>`:'';
 menu=(o=>function(){o();if(S.ta)return;const bx=document.querySelector('.modal .box');if(!bx)return;const h=bx.querySelector('h2');
   const d=document.createElement('div');d.innerHTML=`${ICHI()}<div class="row2"><button class="btn sub" data-act="lite">軽いモード：${S.lite?'ON':'OFF'}</button><button class="btn sub" data-act="kogata">🚒 小型ポンプ操法</button></div>`;if(h)h.after(d)})(menu);
 intro=(o=>function(){o();const bx=document.querySelector('.modal .box');if(!bx||!ichiOn())return;const d=document.createElement('div');d.innerHTML=ICHI();bx.appendChild(d)})(intro);
