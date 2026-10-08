@@ -1198,7 +1198,7 @@ BADGES.push(['dist8','🗺️','全分団 結成（8分団）',()=>openD().lengt
 const IG_URL='https://www.instagram.com/suitasyobodan119_osaka/';
 const QUIZ_URL='https://suitasyobodan119.github.io/suita-quiz/';
 /* 3分チャレンジの記録を送るGoogleフォーム（設定すると自動で送信・全体ランキングを表示） */
-const TA_FORM={url:'https://docs.google.com/forms/d/e/1FAIpQLSe5b_khrUeY_KmapciDBqdcZAxfW5sPCqSYf7DYgvVGGiXOxA/viewform',name:'entry.2112119961',branch:'entry.1680314537',score:'entry.795622279',mode:'entry.271835211',csv:''};
+const TA_FORM={url:'https://docs.google.com/forms/d/e/1FAIpQLSe5b_khrUeY_KmapciDBqdcZAxfW5sPCqSYf7DYgvVGGiXOxA/viewform',name:'entry.2112119961',branch:'entry.1680314537',score:'entry.795622279',mode:'entry.271835211',csv:'https://docs.google.com/spreadsheets/d/167GdvtAofBcuODDnAPcAphLB2fkS4dVyswtTv-sDtWA/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('フォームの回答 1')};
 const BCOL={'吹一':'#d8402a','吹二':'#f08a24','吹三':'#2f78b8','千一':'#2fa86b','千二':'#8a5cc2','豊津':'#159c9c','岸部':'#3a4fa8','山田':'#8a5a2a','千里丘':'#e0558f'};
 const bcol=n=>{const s=String(n);const k=Object.keys(BCOL).find(k=>s.startsWith(k));return k?BCOL[k]:'#e5432a'};
 const homeCol=()=>bcol((S&&S.home)||'吹三');
@@ -1269,8 +1269,11 @@ hud=(o=>function(){o();const el=document.getElementById('hTown');const c=bcol(to
 
 /* --- 8. 記録送信 --- */
 const formOn=()=>!!(TA_FORM.url&&TA_FORM.name&&TA_FORM.score);
-function sendForm(e){if(!formOn())return;try{const fd=new FormData();fd.append(TA_FORM.name,e.n);if(TA_FORM.branch)fd.append(TA_FORM.branch,e.b);fd.append(TA_FORM.score,String(e.s));if(TA_FORM.mode)fd.append(TA_FORM.mode,e.e?'やさしい':'ふつう');
-  fetch(TA_FORM.url.replace(/\/viewform.*$/,'/formResponse'),{method:'POST',mode:'no-cors',body:fd}).then(()=>toast('フェスタ全体ランキングに送ったよ','ok')).catch(()=>{})}catch(x){}}
+function sendForm(e){if(!formOn())return;try{const act=TA_FORM.url.replace(/\/viewform.*$/,'/formResponse');let ifr=document.getElementById('taIfr');if(!ifr){ifr=document.createElement('iframe');ifr.name='taIfr';ifr.id='taIfr';ifr.style.display='none';document.body.appendChild(ifr)}
+  const f=document.createElement('form');f.method='POST';f.action=act;f.target='taIfr';f.acceptCharset='UTF-8';f.style.display='none';
+  const add=(k,v)=>{if(!k)return;const x=document.createElement('input');x.type='hidden';x.name=k;x.value=v;f.appendChild(x)};
+  add(TA_FORM.name,e.n);add(TA_FORM.branch,e.b);add(TA_FORM.score,String(e.s));add(TA_FORM.mode,e.e?'やさしい':'ふつう');
+  document.body.appendChild(f);f.submit();setTimeout(()=>f.remove(),3000);toast('フェスタ全体ランキングに送ったよ','ok')}catch(x){}}
 async function loadAll(){if(!TA_FORM.csv)return null;try{const r=await fetch(TA_FORM.csv,{cache:'no-store'});const tx=await r.text();const rows=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split(','));return rows.map(c=>({n:(c[1]||'').replace(/"/g,''),b:(c[2]||'').replace(/"/g,''),s:+(c[3]||'0').replace(/"/g,''),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,10)}catch(x){return null}}
 async function showAll(){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこみ中…</p>');const r=await loadAll();if(!r){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこめませんでした。電波のよいところで試してね</p><button class="btn" data-act="tanext">もどる</button>');return}
   modal(`<h2>フェスタ全体ランキング</h2><table class="rk">${r.map((x,i)=>`<tr><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b)}${x.e?'・やさしい':''}</small></td><td>${x.s}枚</td></tr>`).join('')}</table><button class="btn" data-act="tanext">もどる</button>`)}
