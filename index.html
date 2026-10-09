@@ -1384,7 +1384,7 @@ taSave=function(){if(taSaved)return;const n=(document.getElementById('taName').v
   modal(`<h2>ランキング</h2><p class="lead">${MODE_NAME[m]}モード</p>${taRankHtml(i<10?i:null,m)}${i>=10?`<p class="note">${esc(n)}：${i+1}位（${taScore}枚）</p>`:''}<button class="btn" data-act="tanext">次の人へ</button><button class="btn sub" data-act="taexit">ふつうのモードにもどる</button><button class="btn sub mini" data-act="taclr">ランキングを消す（係の人用）</button>${REAL}`)};
 let allMode='e',allCache=null;
 showAll=async function(){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこみ中…</p>');allCache=null;
-  try{const rr=await fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'});const tx=await rr.text();allCache=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0)}catch(x){}
+  try{const rr=await fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'});const tx=await rr.text();allCache=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({ts:c[0]||'',n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0)}catch(x){}
   allMode=rankMode;allShow()};
 function allShow(){if(!allCache){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこめませんでした。電波のよいところで試してね</p><button class="btn" data-act="tanext">もどる</button>');return}
   const r=allCache.filter(x=>modeOf(x)===allMode).sort((a,b)=>b.s-a.s).slice(0,10);
@@ -1458,7 +1458,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act=fbsent
 let gRank=null,gAt=0;
 async function loadGlobal(force){if(!TA_FORM.csv)return null;if(!force&&gRank&&Date.now()-gAt<30000)return gRank;
   try{const rr=await fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'});const tx=await rr.text();
-    gRank=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||''),g:1})).filter(x=>x.s>0);gAt=Date.now()}catch(x){}
+    gRank=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({ts:c[0]||'',n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||''),g:1})).filter(x=>x.s>0);gAt=Date.now()}catch(x){}
   return gRank}
 function mergedRank(extra){const seen=new Set(),out=[];for(const x of [...(extra||[]),...(gRank||[]),...taRank()]){const k=(x.n||'')+'|'+x.s+'|'+(x.e?1:0);if(seen.has(k))continue;seen.add(k);out.push(x)}return out.sort((a,b)=>b.s-a.s||(a.d||0)-(b.d||0))}
 function rankTable(list,m,hiEntry){const r=list.filter(x=>modeOf(x)===m).slice(0,10);
@@ -1654,6 +1654,18 @@ update=(o=>function(dt){o(dt);if(!boxCompensate.done&&S.started){boxCompensate.d
 #orders small{flex:none;font-size:11px;opacity:.85}
 #orders .ofoot{font-size:10px;color:#6b7486;padding:0 4px}
 .ordnote{color:#b3261e!important;font-weight:700}`;document.head.appendChild(st)})();
+
+/* ===================== 団員の記録に「越せるかな？」 ===================== */
+// フェスタ前（10/10 朝まで）にシートへ入った記録は、消防団員が遊んだ記録
+const DAN_UNTIL='2026/10/10 08:00';
+const isDan=x=>!!(x&&x.ts&&x.ts<DAN_UNTIL);
+rankTable=function(list,m,hiEntry){const r=list.filter(x=>modeOf(x)===m).slice(0,10);
+  if(!r.length)return `<p class="note">${MODE_NAME[m]}モードは、まだ記録がないよ。1位をねらおう！</p>`;
+  const dan=r.some(isDan);
+  return `${dan?'<p class="dannote">🚒 は消防団員の記録。団員の記録を越せるかな？</p>':''}<table class="rk">${r.map((x,i)=>`<tr class="${hiEntry&&x===hiEntry?'me':''}"><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${isDan(x)?'<span class="danb">🚒団員</span>':''}${esc(safeName(x.n))}<small>${esc(x.b||'')}</small></td><td>${x.s}枚</td></tr>`).join('')}</table>`};
+allShow=function(){if(!allCache){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこめませんでした。電波のよいところで試してね</p><button class="btn" data-act="tanext">もどる</button>');return}
+  modal(`<h2>フェスタ全体ランキング</h2>${rankTabs('allm',allMode)}${rankTable(allCache.slice().sort((a,b)=>b.s-a.s),allMode)}<button class="btn" data-act="tanext">もどる</button>`)};
+(()=>{const st=document.createElement('style');st.textContent='.dannote{margin:2px 0 6px;font-size:13px;font-weight:800;color:#b3261e;text-align:center}.danb{display:inline-block;font-size:10px;font-weight:800;background:#e5432a;color:#fff;border-radius:6px;padding:1px 5px;margin-right:4px;vertical-align:1px}';document.head.appendChild(st)})();
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
