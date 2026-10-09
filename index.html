@@ -125,6 +125,7 @@ button,a,.qbtn{touch-action:manipulation}
 .ichi{background:#fff5df;border:2px solid #f3b648;border-radius:14px;padding:10px 12px;text-align:left;margin:4px 0}.ichi b{display:block;margin-bottom:4px}.ichi span{display:block;font-size:12px;line-height:1.6}.ichi a.fb{display:block;margin-top:6px;text-align:center}
 a.fb.fbbig{display:block;text-align:center;font-size:17px;padding:14px 10px}
 .btn.modebtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:10px 12px;line-height:1.3}.btn.modebtn b{font-size:18px}.btn.modebtn small{font-size:12px;font-weight:700;opacity:.75}
+.btn.danger{background:#fde3dd;color:#b8321e}.btn[disabled]{opacity:.5}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row2 .btn{margin-top:8px}
 #taBar{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 152px);z-index:6;background:rgba(27,39,64,.88);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:8px 12px;pointer-events:none;font-variant-numeric:tabular-nums}
 #taBar.low{background:#e5432a;animation:tapulse 1s infinite}@keyframes tapulse{50%{transform:scale(1.06)}}
@@ -1476,6 +1477,21 @@ taSave=function(){if(taSaved)return;const n=(document.getElementById('taName').v
   const list=mergedRank([e]).filter(x=>modeOf(x)===m),i=list.indexOf(e);rankMode=m;gAt=0;
   modal(`<h2>ランキング</h2><p class="lead">${MODE_NAME[m]}モード・${rankLabel()}</p>${rankTable(list,m,e)}${i>=10?`<p class="note">${esc(n)}：${i+1}位（${taScore}枚）</p>`:''}<p class="note" style="margin:6px 0 0">遊んだ感想をきかせてね</p>${FB_BTN()}<button class="btn" data-act="tanext">次の人へ</button><button class="btn sub" data-act="taexit">ふつうのモードにもどる</button><button class="btn sub mini" data-act="taclr">ランキングを消す（係の人用）</button>${REAL}`)};
 
+/* ===================== 「最初からにする」の確認と、元にもどす ===================== */
+const BK_KEY=KEY+'-backup';
+function resetConfirm(){const yl0=S.lv.yagura;
+  modal(`<h2>最初からにする？</h2><p class="lead">いまのデータが消えて、最初からになります</p><div class="tsucard"><b>いまのデータ</b>${homeName()}・${RANKS[S.rank||0]}／コイン ${S.coins}枚／火の見やぐら Lv${yl0}／バッジ ${(S.badges||[]).length}個</div>
+  <button class="btn" data-act="close">やめる（ゲームにもどる）</button><button class="btn sub danger" id="resetGo" data-act="resetgo" disabled>あと2秒…</button><p class="note">まちがえて消しても、MENUの「前のデータにもどす」で元にもどせます（この端末で、次に最初からにするまで）</p>`);
+  let n=2;const t=setInterval(()=>{const b=document.getElementById('resetGo');if(!b){clearInterval(t);return}n--;if(n<=0){clearInterval(t);b.disabled=false;b.textContent='最初からにする'}else b.textContent=`あと${n}秒…`},1000)}
+function resetDo(){try{if(!S.ta&&S.earned>0)localStorage.setItem(BK_KEY,JSON.stringify({at:Date.now(),S}))}catch(x){}
+  const uz=S.uz,mu=S.muted,hm=S.home,hs=S.homeSet,hn=S.han;S=fresh();S.uz=uz;S.muted=mu;S.home=hm;S.homeSet=hs;S.han=hn;S.started=true;resetWorld();save();closeModal();pop('スタート！','木に近づいてみよう');ga('reset',{})}
+function backup(){try{return JSON.parse(localStorage.getItem(BK_KEY))}catch(x){return null}}
+function restoreDo(){const b=backup();if(!b||!b.S)return;try{localStorage.removeItem(BK_KEY)}catch(x){}S=b.S;resetWorld();save();closeModal();hudKey='';pop('前のデータにもどしたよ',`コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}`)}
+menu=(o=>function(){o();if(S.ta)return;const b=backup();if(!b||!b.S)return;const bx=document.querySelector('.modal .box');if(!bx)return;const rs=bx.querySelector('[data-act=reset]');const d=new Date(b.at);
+  const el=document.createElement('div');el.innerHTML=`<button class="btn sub" data-act="restore">前のデータにもどす（${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}・コイン${b.S.coins}枚）</button>`;if(rs)rs.before(el);else bx.appendChild(el)})(menu);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='resetask')resetConfirm();else if(a==='resetgo'){if(!b.disabled)resetDo()}else if(a==='restore')restoreDo()});
+
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
 let riverW=0;
@@ -1937,7 +1953,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(
   else if(a==='qhint')quizHint();
   else if(a==='qdone')quizDone();
   else if(a==='savequit'){const ok=save();modal(ok?`<h2>セーブしました</h2><p class="lead">このまま閉じてOK。次に開くと、つづきから遊べます。</p><p class="note">同じスマホ・同じブラウザで開いてね</p><button class="btn" data-act="close">ゲームにもどる</button>`:`<h2>セーブできません</h2><p>このブラウザではセーブが使えない設定になっています。Safariで開くとセーブできます。</p><button class="btn" data-act="close">ゲームにもどる</button>`)}
-  else if(a==='reset'){if(b.dataset.arm){const uz=S.uz,mu=S.muted,hm=S.home,hs=S.homeSet;S=fresh();S.uz=uz;S.muted=mu;S.home=hm;S.homeSet=hs;S.started=true;resetWorld();save();closeModal();pop('スタート！','木に近づいてみよう')}else{b.dataset.arm='1';b.textContent='もう一度押すとリセット'}}});
+  else if(a==='reset')resetConfirm();});
 document.getElementById('menuBtn').addEventListener('click',()=>{audio();menu()});
 
 /* ===================== ループ ===================== */
