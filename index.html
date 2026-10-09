@@ -1610,18 +1610,20 @@ function incidents(){const L=[],s=x=>Math.max(0,Math.ceil(x));
     g:P.ride==='boat'?'浸水した家のそばまでボートで行こう':`浸水！ 救助ボートに乗って助けよう（あと${s(rain.t)}秒）`})}
   if(dEv){const g=devGuide();if(g)L.push({k:'dev',ic:'📣',name:DEV_NAME[dEv.k]||'応援要請',t:dEv.t,mk:g.tg,tg:g.tg,g:g.t})}
   if(ty){const g=tyGuide();if(g&&g.tg)L.push({k:'ty',ic:'🌀',name:'台風',t:ty.ph==='warn'?ty.t:null,mk:g.tg,tg:g.tg,g:g.t})}
-  if(trees.some(t=>t.fire)){const tr=nearest(trees,P.x,P.y,o=>o.fire);L.push({k:'ff',ic:'🌲',name:'林野火災',t:null,mk:tr,tg:tr,g:'山で林野火災！ 燃え広がる前に放水で消そう'})}
-  const boss=mons.find(m=>m.boss&&!m.dead);if(boss)L.push({k:'boss',ic:'🔥',name:'大ヒノコ',t:null,mk:boss,tg:boss,g:'大ヒノコが来た！ ポンプ車で消そう'});
-  // 残り時間が少ない順。時間のないもの（林野火災・大ヒノコ）は後ろ
+  // 林野火災・大ヒノコは時間制限のない「その場の災害」なので指令リストには入れない（ポンプ車・班も自動で消しに行く）
+  // 残り時間が少ない順
   return L.sort((a,b)=>(a.t==null?1e4:a.t)-(b.t==null?1e4:b.t))}
 let ordPin=null,ordList=[],ordN=0,ordHtml='';
 function ordCur(){return ordList.find(x=>x.k===ordPin)||ordList[0]}
 const waterLow=()=>{const L=VEH.ladder;return (P.ride==='truck'&&T.w!=null&&T.w<tCap()*.15&&!T.conn)||(P.ride==='ladder'&&L.w!=null&&L.w<LCAP()*.2&&!L.conn)};
-function drawOrders(){let el=document.getElementById('orders');
+let ordOpenUntil=0;
+function drawOrders(){let el=document.getElementById('orders'),mo=document.getElementById('ordMore');
   if(!el){document.getElementById('goal').insertAdjacentHTML('afterend','<div id="orders" hidden></div>');el=document.getElementById('orders')}
-  const tb=document.getElementById('toasts');
-  if(ordList.length<2){if(!el.hidden){el.hidden=true;ordHtml='';tb.style.top=''}return}
-  const cur=ordCur(),h=`<div class="oh">指令が${ordList.length}件！ 上から順に対応しよう</div>`+ordList.map((x,i)=>`<button class="orow ${x===cur?'cur':''}" data-ord="${x.k}"><span class="on">${x===cur?'▶':i+1}</span><span class="onm">${x.ic} ${x.name}</span><small>${x.t==null?'急いで':'あと'+Math.max(0,Math.ceil(x.t))+'秒'}</small></button>`).join('')+`<div class="ofoot">タップすると、その指令を先にできるよ</div>`;
+  if(!mo){document.getElementById('goal').insertAdjacentHTML('beforeend','<button id="ordMore" hidden></button>');mo=document.getElementById('ordMore')}
+  const tb=document.getElementById('toasts'),n=ordList.length,open=n>=2&&performance.now()<ordOpenUntil;
+  const mt=n>=2?`ほか${n-1}件 ${open?'▲':'▼'}`:'';if(mo.textContent!==mt)mo.textContent=mt;mo.hidden=n<2;
+  if(!open){if(!el.hidden){el.hidden=true;ordHtml='';tb.style.top=''}return}
+  const cur=ordCur(),h=ordList.map((x,i)=>`<button class="orow ${x===cur?'cur':''}" data-ord="${x.k}"><span class="on">${x===cur?'▶':i+1}</span><span class="onm">${x.ic} ${x.name}</span><small>${x.t==null?'急いで':'あと'+Math.max(0,Math.ceil(x.t))+'秒'}</small></button>`).join('');
   if(h!==ordHtml){el.innerHTML=h;ordHtml=h;el.hidden=false;tb.style.top=(el.getBoundingClientRect().bottom+6)+'px'}el.hidden=false}
 updGuide=(o=>function(){o();
   if(S.started&&S.f.sold)ordList=incidents();else ordList=[];
@@ -1631,15 +1633,15 @@ updGuide=(o=>function(){o();
   ordN=n;
   if(n>=2&&!waterLow()){const c=ordCur();setGuide({t:c.g,tg:c.tg,mode:'alert'});document.getElementById('goalTag').textContent=`指令${ordList.indexOf(c)+1}/${n}`}
   drawOrders();recId=calcRec()})(updGuide);
-document.addEventListener('click',e=>{const b=e.target.closest('[data-ord]');if(!b)return;ordPin=b.dataset.ord;const x=ordList.find(o=>o.k===ordPin);if(x)snd('pick');updGuide()});
+document.addEventListener('click',e=>{if(e.target.closest('#ordMore')){ordOpenUntil=performance.now()<ordOpenUntil?0:performance.now()+3000;snd('pick');drawOrders();return}
+  const b=e.target.closest('[data-ord]');if(!b)return;ordPin=b.dataset.ord;ordOpenUntil=0;const x=ordList.find(o=>o.k===ordPin);if(x)snd('pick');updGuide()});
+cv.addEventListener('pointerdown',()=>{if(ordOpenUntil){ordOpenUntil=0;drawOrders()}});
 // 新しい指令が来たとき、ほかの指令も出ていればお知らせ
-dispatch=(o=>function(title,sub,opts){o(title,sub,opts);const n=incidents().length;if(n>=2){const b=document.querySelector('.modal .box .btn');if(b)b.insertAdjacentHTML('beforebegin',`<p class="note ordnote">⚠️ ほかにも指令が出ています（全部で${n}件）。画面上の「指令リスト」で順番を確認しよう</p>`)}})(dispatch);
+dispatch=(o=>function(title,sub,opts){o(title,sub,opts);const n=incidents().length;if(n>=2){const b=document.querySelector('.modal .box .btn');if(b)b.insertAdjacentHTML('beforebegin',`<p class="note ordnote">⚠️ ほかにも指令が出ています（全部で${n}件）。画面上の「ほか◯件」を押すと一覧が見られるよ</p>`)}})(dispatch);
 // 地図の上に、指令の番号を出す
-drawWeather=(o=>function(t){o(t);if(ordList.length<2)return;const cur=ordCur();
-  ordList.forEach((x,i)=>{if(!x.mk)return;const sp=toScreen(x.mk.x,x.mk.y),on=sp.x>0&&sp.x<W&&sp.y>140&&sp.y<H;
-    let ex,ey,r;if(on){ex=sp.x;ey=sp.y-96*sc()+Math.sin(t/200+i)*3;r=15}else{ex=clamp(sp.x,26,W-26)+14;ey=clamp(sp.y,160,H-40)-14;r=11}
-    cx.fillStyle=x===cur?'#e5432a':'#fff';cx.strokeStyle=x===cur?'#fff':'#e5432a';cx.lineWidth=3;cx.beginPath();cx.arc(ex,ey,r,0,7);cx.fill();cx.stroke();
-    label(String(i+1),ex,ey+1,on?15:11,x===cur?'#fff':'#e5432a')})})(drawWeather);
+drawWeather=(o=>function(t){o(t);if(ordList.length<2)return;const x=ordCur();if(!x||!x.mk)return;
+  const sp=toScreen(x.mk.x,x.mk.y);if(!(sp.x>0&&sp.x<W&&sp.y>140&&sp.y<H))return;
+  const ex=sp.x,ey=sp.y-96*sc()+Math.sin(t/200)*3;cx.fillStyle='#e5432a';cx.strokeStyle='#fff';cx.lineWidth=3;cx.beginPath();cx.arc(ex,ey,15,0,7);cx.fill();cx.stroke();label('▶',ex+1,ey+1,13,'#fff')})(drawWeather);
 // 「おすすめ」の目印
 drawPads=(o=>function(t){o(t);if(!recId||ordList.length)return;const p=PADMAP[recId];if(!p||!unlocked(p))return;const b=Math.sin(t/220)*3;label('★おすすめ',p.x,p.y-80+b,12,'#4a3306','#ffd84a')})(drawPads);
 update=(o=>function(dt){o(dt);if(!boxCompensate.done&&S.started){boxCompensate.done=1;boxCompensate()}})(update);
@@ -1652,7 +1654,8 @@ update=(o=>function(dt){o(dt);if(!boxCompensate.done&&S.started){boxCompensate.d
 #orders .on{flex:none;width:20px;height:20px;border-radius:50%;background:#fff;color:var(--shu);display:grid;place-items:center;font-size:12px;font-weight:900;box-shadow:0 0 0 2px var(--shu)}
 #orders .onm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #orders small{flex:none;font-size:11px;opacity:.85}
-#orders .ofoot{font-size:10px;color:#6b7486;padding:0 4px}
+#ordMore{pointer-events:auto;flex:none;margin-left:auto;border:0;border-radius:999px;background:#fff;color:var(--shu);font:inherit;font-size:12px;font-weight:900;padding:5px 9px;cursor:pointer;white-space:nowrap}
+#ordMore[hidden]{display:none}
 .ordnote{color:#b3261e!important;font-weight:700}`;document.head.appendChild(st)})();
 
 /* ===================== 団員の記録に「越せるかな？」 ===================== */
@@ -1672,6 +1675,16 @@ allShow=function(){if(!allCache){modal('<h2>フェスタ全体ランキング</h
 document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href*="instagram.com"]');if(!a)return;
   const h=document.querySelector('.modal h2'),from=(h?h.textContent.trim():'画面')||'画面';
   ga('ig_click',{from:from.slice(0,30),mode:S&&S.ta?'3分チャレンジ':'ふつう',branch:homeName(),transport_type:'beacon'})},true);
+
+/* ===================== 指令が同時に出すぎないようにする ===================== */
+const ordCap=()=>(S.ta||S.easy)?1:2;
+const ordActive=()=>[hr,em,eq&&eq.hs.some(h=>h.person),rain&&rain.hs.some(h=>h.person),dEv,ty].filter(Boolean).length;
+const ordBusy=()=>ordActive()>=ordCap();
+startHR=(o=>function(){if(ordBusy()){hrT=15;return}o()})(startHR);
+startQuake=(o=>function(){if(ordBusy()){eqT=15;return}o()})(startQuake);
+startRain=(o=>function(){if(ordBusy()){rainT=15;return}o()})(startRain);
+startDev=(o=>function(id){if(ordBusy()){devT=20;return}o(id)})(startDev);
+updEmerg=(o=>function(dt){if(!em&&ordBusy()&&emT<10)emT=10;o(dt)})(updEmerg);
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
