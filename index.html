@@ -1667,6 +1667,12 @@ allShow=function(){if(!allCache){modal('<h2>フェスタ全体ランキング</h
   modal(`<h2>フェスタ全体ランキング</h2>${rankTabs('allm',allMode)}${rankTable(allCache.slice().sort((a,b)=>b.s-a.s),allMode)}<button class="btn" data-act="tanext">もどる</button>`)};
 (()=>{const st=document.createElement('style');st.textContent='.dannote{margin:2px 0 6px;font-size:13px;font-weight:800;color:#b3261e;text-align:center}.danb{display:inline-block;font-size:10px;font-weight:800;background:#e5432a;color:#fff;border-radius:6px;padding:1px 5px;margin-right:4px;vertical-align:1px}';document.head.appendChild(st)})();
 
+/* ===================== Instagramへのリンクを押した記録 ===================== */
+// どの画面から押したか（メニュー・タイムアップ後のランキング など）を一緒に記録する
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a[href*="instagram.com"]');if(!a)return;
+  const h=document.querySelector('.modal h2'),from=(h?h.textContent.trim():'画面')||'画面';
+  ga('ig_click',{from:from.slice(0,30),mode:S&&S.ta?'3分チャレンジ':'ふつう',branch:homeName(),transport_type:'beacon'})},true);
+
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
 let riverW=0;
