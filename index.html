@@ -1213,7 +1213,7 @@ BADGES.push(['dist8','🗺️','全9分団 そろう',()=>openD().length>=8],['d
 const IG_URL='https://www.instagram.com/suitasyobodan119_osaka/';
 const QUIZ_URL='https://suitasyobodan119.github.io/suita-quiz/';
 /* 3分チャレンジの記録を送るGoogleフォーム（設定すると自動で送信・全体ランキングを表示） */
-const TA_FORM={url:'https://docs.google.com/forms/d/e/1FAIpQLSe5b_khrUeY_KmapciDBqdcZAxfW5sPCqSYf7DYgvVGGiXOxA/viewform',name:'entry.2112119961',branch:'entry.1680314537',score:'entry.795622279',mode:'entry.271835211',csv:'https://docs.google.com/spreadsheets/d/167GdvtAofBcuODDnAPcAphLB2fkS4dVyswtTv-sDtWA/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent('フォームの回答 1')};
+const TA_FORM={url:'https://docs.google.com/forms/d/e/1FAIpQLSe5b_khrUeY_KmapciDBqdcZAxfW5sPCqSYf7DYgvVGGiXOxA/viewform',name:'entry.2112119961',branch:'entry.1680314537',score:'entry.795622279',mode:'entry.271835211',csv:'https://docs.google.com/spreadsheets/d/167GdvtAofBcuODDnAPcAphLB2fkS4dVyswtTv-sDtWA/gviz/tq?tqx=out:csv&headers=1&tq='+encodeURIComponent('select *')+'&sheet='+encodeURIComponent('フォームの回答 1')};
 const BCOL={'吹一':'#d8402a','吹二':'#f08a24','吹三':'#2f78b8','千一':'#2fa86b','千二':'#8a5cc2','豊津':'#159c9c','岸部':'#3a4fa8','山田':'#8a5a2a','千里丘':'#e0558f'};
 const bcol=n=>{const s=String(n);const k=Object.keys(BCOL).find(k=>s.startsWith(k));return k?BCOL[k]:'#e5432a'};
 const homeCol=()=>bcol((S&&S.home)||'吹三');
@@ -1289,7 +1289,7 @@ function sendForm(e){if(!formOn())return;try{const act=TA_FORM.url.replace(/\/vi
   const add=(k,v)=>{if(!k)return;const x=document.createElement('input');x.type='hidden';x.name=k;x.value=v;f.appendChild(x)};
   add(TA_FORM.name,e.n);add(TA_FORM.branch,e.b);add(TA_FORM.score,String(e.s));add(TA_FORM.mode,e.e?'やさしい':'ふつう');
   document.body.appendChild(f);f.submit();setTimeout(()=>f.remove(),3000);toast('フェスタ全体ランキングに送ったよ','ok')}catch(x){}}
-async function loadAll(){if(!TA_FORM.csv)return null;try{const r=await fetch(TA_FORM.csv,{cache:'no-store'});const tx=await r.text();const rows=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split(','));return rows.map(c=>({n:(c[1]||'').replace(/"/g,''),b:(c[2]||'').replace(/"/g,''),s:+(c[3]||'0').replace(/"/g,''),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,10)}catch(x){return null}}
+async function loadAll(){if(!TA_FORM.csv)return null;try{const r=await fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'});const tx=await r.text();const rows=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split(','));return rows.map(c=>({n:(c[1]||'').replace(/"/g,''),b:(c[2]||'').replace(/"/g,''),s:+(c[3]||'0').replace(/"/g,''),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0).sort((a,b)=>b.s-a.s).slice(0,10)}catch(x){return null}}
 async function showAll(){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこみ中…</p>');const r=await loadAll();if(!r){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこめませんでした。電波のよいところで試してね</p><button class="btn" data-act="tanext">もどる</button>');return}
   modal(`<h2>フェスタ全体ランキング</h2><table class="rk">${r.map((x,i)=>`<tr><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b)}${x.e?'・やさしい':''}</small></td><td>${x.s}枚</td></tr>`).join('')}</table><button class="btn" data-act="tanext">もどる</button>`)}
 
@@ -1384,7 +1384,7 @@ taSave=function(){if(taSaved)return;const n=(document.getElementById('taName').v
   modal(`<h2>ランキング</h2><p class="lead">${MODE_NAME[m]}モード</p>${taRankHtml(i<10?i:null,m)}${i>=10?`<p class="note">${esc(n)}：${i+1}位（${taScore}枚）</p>`:''}<button class="btn" data-act="tanext">次の人へ</button><button class="btn sub" data-act="taexit">ふつうのモードにもどる</button><button class="btn sub mini" data-act="taclr">ランキングを消す（係の人用）</button>${REAL}`)};
 let allMode='e',allCache=null;
 showAll=async function(){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこみ中…</p>');allCache=null;
-  try{const rr=await fetch(TA_FORM.csv,{cache:'no-store'});const tx=await rr.text();allCache=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0)}catch(x){}
+  try{const rr=await fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'});const tx=await rr.text();allCache=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||'')})).filter(x=>x.s>0)}catch(x){}
   allMode=rankMode;allShow()};
 function allShow(){if(!allCache){modal('<h2>フェスタ全体ランキング</h2><p class="note">読みこめませんでした。電波のよいところで試してね</p><button class="btn" data-act="tanext">もどる</button>');return}
   const r=allCache.filter(x=>modeOf(x)===allMode).sort((a,b)=>b.s-a.s).slice(0,10);
@@ -1457,7 +1457,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('[data-act=fbsent
 /* ===================== ランキングは端末＋フェスタ全体をまとめて表示 ===================== */
 let gRank=null,gAt=0;
 async function loadGlobal(force){if(!TA_FORM.csv)return null;if(!force&&gRank&&Date.now()-gAt<30000)return gRank;
-  try{const rr=await fetch(TA_FORM.csv,{cache:'no-store'});const tx=await rr.text();
+  try{const rr=await fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'});const tx=await rr.text();
     gRank=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||''),g:1})).filter(x=>x.s>0);gAt=Date.now()}catch(x){}
   return gRank}
 function mergedRank(extra){const seen=new Set(),out=[];for(const x of [...(extra||[]),...(gRank||[]),...taRank()]){const k=(x.n||'')+'|'+x.s+'|'+(x.e?1:0);if(seen.has(k))continue;seen.add(k);out.push(x)}return out.sort((a,b)=>b.s-a.s||(a.d||0)-(b.d||0))}
