@@ -126,6 +126,8 @@ button,a,.qbtn{touch-action:manipulation}
 a.fb.fbbig{display:block;text-align:center;font-size:17px;padding:14px 10px}
 .btn.modebtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:10px 12px;line-height:1.3}.btn.modebtn b{font-size:18px}.btn.modebtn small{font-size:12px;font-weight:700;opacity:.75}
 .btn.danger{background:#fde3dd;color:#b8321e}.btn[disabled]{opacity:.5}
+.qsrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.qsrow .btn{font-size:13px;line-height:1.35;padding:8px 4px;min-height:84px;margin-top:0}.qsrow .btn span{display:block;font-size:22px}.qsrow .btn b{display:block;font-size:13px;white-space:nowrap;letter-spacing:-.02em}.qsrow .btn small{display:block;font-size:11px;opacity:.75}.qzlinks a b{display:block;font-size:12px;white-space:nowrap;letter-spacing:-.03em}.qzlinks a small{display:block;font-size:10px}
+.qzlinks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.real .qzlinks a.fb{margin:0;font-size:12px;line-height:1.35;padding:8px 2px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row2 .btn{margin-top:8px}
 #taBar{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 152px);z-index:6;background:rgba(27,39,64,.88);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:8px 12px;pointer-events:none;font-variant-numeric:tabular-nums}
 #taBar.low{background:#e5432a;animation:tapulse 1s infinite}@keyframes tapulse{50%{transform:scale(1.06)}}
@@ -1254,7 +1256,7 @@ function cprEnd(){const c=cpr;if(!c||c.done)return;c.done=true;clearInterval(c.t
   stAdd('cpr');if(ok)stAdd('cprok');
   modal(`<h2>${ok?'救命成功！':'救急隊に引き継いだ'}</h2><div class="medal r${ok?(rate>.85?3:2):0}">${Math.round(rate*100)}点</div><p class="lead">平均 ${avg}回/分・${c.taps.length}回押した</p><p class="note">${ok?'AEDが届いて、救急隊に引き継げた！':'リズムは1分間に100〜120回。「もしもしカメよ」くらいの速さだよ'}<br>本物の心肺蘇生は、消防署の救命講習で練習できます</p><button class="btn" data-act="cprdone" data-ok="${ok?1:0}">OK</button>`)}
 function cprDone(ok){const c=cpr;cpr=null;closeModal();if(c&&c.cb)c.cb(ok)}
-quiz=(o=>function(bank,title,sub,hint,cb){if(bank==='kyukyu'&&!cpr&&Math.random()<.45){cprGame('救急出動！ 倒れた人が息をしていない',ok=>cb&&cb(ok));return}return o(bank,title,sub,hint,cb)})(quiz);
+quiz=(o=>function(bank,title,sub,hint,cb){if(bank==='kyukyu'&&!cpr&&!qsetOn&&Math.random()<.45){cprGame('救急出動！ 倒れた人が息をしていない',ok=>cb&&cb(ok));return}return o(bank,title,sub,hint,cb)})(quiz);
 
 /* --- 5. 119番通報ゲーム --- */
 let tsu=null,tsuCD=150;
@@ -1292,7 +1294,7 @@ async function showAll(){modal('<h2>フェスタ全体ランキング</h2><p cla
   modal(`<h2>フェスタ全体ランキング</h2><table class="rk">${r.map((x,i)=>`<tr><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b)}${x.e?'・やさしい':''}</small></td><td>${x.s}枚</td></tr>`).join('')}</table><button class="btn" data-act="tanext">もどる</button>`)}
 
 /* --- 7. 入団案内（本物の消防団へ） --- */
-const REAL=`<div class="real"><b>本物の吹田市消防団を見てみよう</b><a class="fb ig" href="${IG_URL}" target="_blank" rel="noopener">📷 公式Instagram</a><a class="fb qz" href="${QUIZ_URL}" target="_blank" rel="noopener">🚑 救急救命クイズに挑戦</a><span>消防団は、ふだんは仕事や学校がある地域の人たちが、火事や災害のときに町を守る組織です</span></div>`;
+const REAL=`<div class="real"><b>本物の吹田市消防団を見てみよう</b><a class="fb ig" href="${IG_URL}" target="_blank" rel="noopener">📷 公式Instagram</a><div class="qzlinks"><a class="fb qz" href="https://suitasyobodan119.github.io/suita-quiz/" target="_blank" rel="noopener"><b>救急救命</b><small>クイズ</small></a><a class="fb qz" href="https://suitasyobodan119.github.io/suita-quiz/sonae.html" target="_blank" rel="noopener"><b>備え（地震）</b><small>クイズ</small></a><a class="fb qz" href="https://suitasyobodan119.github.io/suita-quiz/nyudan.html" target="_blank" rel="noopener"><b>消防団って何？</b><small>クイズ</small></a></div><span>消防団は、ふだんは仕事や学校がある地域の人たちが、火事や災害のときに町を守る組織です</span></div>`;
 menu=(o=>function(){o();if(S.ta)return;const bx=document.querySelector('.modal .box');if(!bx)return;
   const fb=bx.querySelector('a.fb');const div=document.createElement('div');div.innerHTML=`<h3 class="sec">ミニゲームで練習</h3><div class="row2"><button class="btn sub" data-act="cprprac">❤️ 心肺蘇生</button><button class="btn sub" data-act="tsuprac">📞 119番通報</button></div><button class="btn sub" data-act="easy">やさしいモード：${S.easy?'ON（水が減らない）':'OFF'}</button>${REAL}`;
   if(fb)bx.insertBefore(div,fb);else bx.appendChild(div)})(menu);
@@ -1491,6 +1493,27 @@ menu=(o=>function(){o();if(S.ta)return;const b=backup();if(!b||!b.S)return;const
   const el=document.createElement('div');el.innerHTML=`<button class="btn sub" data-act="restore">前のデータにもどす（${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}・コイン${b.S.coins}枚）</button>`;if(rs)rs.before(el);else bx.appendChild(el)})(menu);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='resetask')resetConfirm();else if(a==='resetgo'){if(!b.disabled)resetDo()}else if(a==='restore')restoreDo()});
+
+/* ===================== 3つのクイズにいつでも挑戦 ===================== */
+const QSETS={kyukyu:{name:'救急救命クイズ',short:'救急救命',ic:'🚑',url:'https://suitasyobodan119.github.io/suita-quiz/'},
+  sonae:{name:'備えクイズ（地震）',short:'備え（地震）',ic:'🏠',url:'https://suitasyobodan119.github.io/suita-quiz/sonae.html'},
+  nyudan:{name:'消防団って何？クイズ',short:'消防団って何？',ic:'🚒',url:'https://suitasyobodan119.github.io/suita-quiz/nyudan.html'}};
+let qsetOn=null;
+function qsetStart(bank){const Q=QSETS[bank];qsetOn={bank,i:0,ok:0,n:5};ga('quiz_start',{bank});qsetNext()}
+function qsetNext(){const s=qsetOn,Q=QSETS[s.bank];
+  quiz(s.bank,`${Q.ic} ${Q.name}`,`${s.i+1}問目 / ${s.n}問（いま ${s.ok}問正解）`,false,ok=>{if(ok)s.ok++;s.i++;if(s.i<s.n)setTimeout(qsetNext,60);else setTimeout(qsetEnd,60)})}
+function qsetEnd(){const s=qsetOn;qsetOn=null;const Q=QSETS[s.bank],perfect=s.ok===s.n;
+  S.st['q_'+s.bank]=Math.max(S.st['q_'+s.bank]||0,s.ok);stAdd('quiz');
+  const c=S.ta?0:s.ok*3*yl();if(c)drop('coin',P.x,P.y,c);if(perfect&&!S.ta)addMerit(3);ga('quiz_end',{bank:s.bank,score:s.ok});
+  modal(`<h2>${Q.ic} ${Q.name}</h2><div class="medal r${perfect?3:s.ok>=3?2:s.ok>=1?1:0}">${s.ok}/${s.n}問</div><p class="lead">${perfect?'全問正解！ すごい！':s.ok>=3?'よくできました！':'もう一回チャレンジしてみよう'}</p>${c?`<p class="note">ごほうび コイン${c}枚</p>`:''}
+  <a class="fb fbbig" href="${Q.url}" target="_blank" rel="noopener">⏱ 本番のスピードクイズ（全10問）に挑戦</a><button class="btn" data-act="qsagain" data-v="${s.bank}">もう一回（5問）</button><button class="btn sub" data-act="close">ゲームにもどる</button>`)}
+const QSET_ROW=()=>`<h3 class="sec">クイズに挑戦 <small>5問ずつ・正解でコイン</small></h3><div class="qsrow">${Object.entries(QSETS).map(([k,q])=>`<button class="btn sub" data-act="qset" data-v="${k}"><span>${q.ic}</span><b>${q.short}</b><small>クイズ</small></button>`).join('')}</div>`;
+menu=(o=>function(){o();if(S.ta)return;const bx=document.querySelector('.modal .box');if(!bx)return;
+  const h=[...bx.querySelectorAll('h3.sec')].find(x=>x.textContent.includes('ミニゲーム'));const d=document.createElement('div');d.innerHTML=QSET_ROW();
+  if(h&&h.nextElementSibling)h.nextElementSibling.after(d);else bx.appendChild(d)})(menu);
+document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
+  if(a==='qset'||a==='qsagain'){closeModal();setTimeout(()=>qsetStart(b.dataset.v),60)}});
+BADGES.push(['quizall','🎓','クイズ博士（3種類とも5問全問正解）',()=>['kyukyu','sonae','nyudan'].every(k=>(S.st['q_'+k]||0)>=5)]);
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
