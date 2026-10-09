@@ -124,6 +124,7 @@ button,a,.qbtn{touch-action:manipulation}
 .rtabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:4px 0}.rtab{border:2px solid #dbe3ec;background:#f7f9fc;border-radius:10px;padding:8px;font:inherit;font-weight:700;color:var(--ink)}.rtab.on{border-color:var(--shu);background:#fde3dd}
 .ichi{background:#fff5df;border:2px solid #f3b648;border-radius:14px;padding:10px 12px;text-align:left;margin:4px 0}.ichi b{display:block;margin-bottom:4px}.ichi span{display:block;font-size:12px;line-height:1.6}.ichi a.fb{display:block;margin-top:6px;text-align:center}
 a.fb.fbbig{display:block;text-align:center;font-size:17px;padding:14px 10px}
+.btn.modebtn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:10px 12px;line-height:1.3}.btn.modebtn b{font-size:18px}.btn.modebtn small{font-size:12px;font-weight:700;opacity:.75}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.row2 .btn{margin-top:8px}
 #taBar{position:fixed;left:10px;top:calc(env(safe-area-inset-top,0px) + 152px);z-index:6;background:rgba(27,39,64,.88);color:#fff;font-weight:800;font-size:17px;border-radius:14px;padding:8px 12px;pointer-events:none;font-variant-numeric:tabular-nums}
 #taBar.low{background:#e5432a;animation:tapulse 1s infinite}@keyframes tapulse{50%{transform:scale(1.06)}}
@@ -1449,6 +1450,31 @@ update=(o=>function(dt){o(dt);if(S.ta)return;playAcc+=dt;if(playAcc>5){S.playT=(
 taSave=(o=>function(){o();const bx=document.querySelector('.modal .box');if(!bx)return;const d=document.createElement('div');d.innerHTML=`<p class="note" style="margin:6px 0 0">遊んだ感想をきかせてね</p>${FB_BTN()}`;const nx=bx.querySelector('[data-act=tanext]');if(nx)bx.insertBefore(d,nx);else bx.appendChild(d)})(taSave);
 menu=(o=>function(){o();if(S.ta)return;const bx=document.querySelector('.modal .box');if(!bx)return;const h=bx.querySelector('h2');const d=document.createElement('div');d.innerHTML=FB_BTN('✉️ 感想を送る（1分）・ゲームを良くするために教えてね');if(h)h.after(d)})(menu);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act=fbsent]');if(!b)return;S.fbAsked=1;S.fbSent=(S.fbSent||0)+1;save();ga('fb_open',{})});
+
+/* ===================== ランキングは端末＋フェスタ全体をまとめて表示 ===================== */
+let gRank=null,gAt=0;
+async function loadGlobal(force){if(!TA_FORM.csv)return null;if(!force&&gRank&&Date.now()-gAt<30000)return gRank;
+  try{const rr=await fetch(TA_FORM.csv,{cache:'no-store'});const tx=await rr.text();
+    gRank=tx.trim().split(/\r?\n/).slice(1).map(l=>l.split('","').map(c=>c.replace(/^"|"$/g,''))).map(c=>({n:c[1]||'',b:c[2]||'',s:+(c[3]||0),e:/やさしい/.test(c[4]||''),g:1})).filter(x=>x.s>0);gAt=Date.now()}catch(x){}
+  return gRank}
+function mergedRank(extra){const seen=new Set(),out=[];for(const x of [...(extra||[]),...(gRank||[]),...taRank()]){const k=(x.n||'')+'|'+x.s+'|'+(x.e?1:0);if(seen.has(k))continue;seen.add(k);out.push(x)}return out.sort((a,b)=>b.s-a.s||(a.d||0)-(b.d||0))}
+function rankTable(list,m,hiEntry){const r=list.filter(x=>modeOf(x)===m).slice(0,10);
+  if(!r.length)return `<p class="note">${MODE_NAME[m]}モードは、まだ記録がないよ。1位をねらおう！</p>`;
+  return `<table class="rk">${r.map((x,i)=>`<tr class="${hiEntry&&x===hiEntry?'me':''}"><td>${['🥇','🥈','🥉'][i]||(i+1)+'位'}</td><td>${esc(x.n)}<small>${esc(x.b||'')}</small></td><td>${x.s}枚</td></tr>`).join('')}</table>`}
+function rankLabel(){return gRank?'フェスタ全体':'この端末'}
+taIntro=function(){rankMode=taEasy?'e':'n';
+  modal(`<h2>3分チャレンジ</h2><p class="lead">3分間で、コインを何枚かせげるか！</p><ul class="loop"><li><span class="n">1</span><span>木を切って、買取所で売ろう</span></li><li><span class="n">2</span><span>ヒノコを倒して火事を消すと、コインがもらえる</span></li><li><span class="n">3</span><span>斧やホースを買うと、もっとかせげる！ 最後の1分は夜になるぞ</span></li></ul>
+  <button class="btn sub modebtn" data-act="taeasy"><b>${taEasy?'やさしいモード':'ふつうモード'}</b><small>${taEasy?'水が減らない':'水が減る'}・タップで切りかえ</small></button>
+  <h3 class="sec">ランキング <small id="taRankLbl">${MODE_NAME[rankMode]}モード・${rankLabel()}</small></h3><div id="taRankBox">${rankTable(mergedRank(),rankMode)}</div>
+  <button class="btn" data-act="tago">スタート！</button><button class="btn sub" data-act="tahome">所属：${homeName()}（変える）</button><button class="btn sub" data-act="taexit">ふつうに遊ぶ</button>`);
+  loadGlobal().then(()=>{const box=document.getElementById('taRankBox');if(!box)return;box.innerHTML=rankTable(mergedRank(),rankMode);const l=document.getElementById('taRankLbl');if(l)l.textContent=`${MODE_NAME[rankMode]}モード・${rankLabel()}`})};
+taEnd=function(){taScore=S.earned;const m=S.easy?'e':'n';const list=mergedRank().filter(x=>modeOf(x)===m),place=list.filter(x=>x.s>taScore).length+1;snd('buy');ga('ta_finish',{score:taScore,mode:MODE_NAME[m],branch:homeName()});
+  modal(`<h2>タイムアップ！</h2><div class="medal r${place<=3?4-place:0}">${taScore}枚</div><p class="lead">${MODE_NAME[m]}モード ${place<=10?`ランキング ${place}位に入るよ！`:'よくがんばった！'}</p><p class="note">消した火事 ${S.st.ext||0}件・倒したヒノコ ${S.st.kill||0}匹・斧 Lv${S.lv.axe}・ホース Lv${S.lv.hose}</p><label class="nm">なまえ（8文字まで）<input id="taName" maxlength="8" placeholder="ニックネーム" autocomplete="off"></label><button class="btn" data-act="tasave">ランキングに登録</button><button class="btn sub" data-act="tago">登録しないでもう一回</button>`)};
+taSave=function(){if(taSaved)return;const n=(document.getElementById('taName').value||'').trim().slice(0,8)||'ななし';taSaved=true;const m=S.easy?'e':'n';
+  const e={n,b:homeName(),s:taScore,d:Date.now(),e:m==='e'};sendForm(e);let r=taRank();r.push(e);r.sort((a,b)=>b.s-a.s||a.d-b.d);
+  const keep=[...r.filter(x=>modeOf(x)==='e').slice(0,50),...r.filter(x=>modeOf(x)==='n').slice(0,50)];try{localStorage.setItem(TA_KEY,JSON.stringify(keep))}catch(x){}
+  const list=mergedRank([e]).filter(x=>modeOf(x)===m),i=list.indexOf(e);rankMode=m;gAt=0;
+  modal(`<h2>ランキング</h2><p class="lead">${MODE_NAME[m]}モード・${rankLabel()}</p>${rankTable(list,m,e)}${i>=10?`<p class="note">${esc(n)}：${i+1}位（${taScore}枚）</p>`:''}<p class="note" style="margin:6px 0 0">遊んだ感想をきかせてね</p>${FB_BTN()}<button class="btn" data-act="tanext">次の人へ</button><button class="btn sub" data-act="taexit">ふつうのモードにもどる</button><button class="btn sub mini" data-act="taclr">ランキングを消す（係の人用）</button>${REAL}`)};
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
