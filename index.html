@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-117LNT3E63"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());gtag("config","G-117LNT3E63");</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag("js",new Date());var DAN=false;try{var q=location.search;if(/[?&]dan=0/.test(q))localStorage.removeItem("suita119-member");else if(/[?&]dan(=|&|$)/.test(q))localStorage.setItem("suita119-member","1");DAN=localStorage.getItem("suita119-member")==="1"}catch(e){}if(DAN)gtag("set","user_properties",{member:"団員"});gtag("config","G-117LNT3E63",DAN?{member:"団員"}:{});</script>
 <meta name="theme-color" content="#22355c">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="description" content="消防団になって町を火事から守ろう。吹田市消防団のアクション育成ゲーム">
@@ -1611,6 +1611,7 @@ function incidents(){const L=[],s=x=>Math.max(0,Math.ceil(x));
   if(dEv){const g=devGuide();if(g)L.push({k:'dev',ic:'📣',name:DEV_NAME[dEv.k]||'応援要請',t:dEv.t,mk:g.tg,tg:g.tg,g:g.t})}
   if(ty){const g=tyGuide();if(g&&g.tg)L.push({k:'ty',ic:'🌀',name:'台風',t:ty.ph==='warn'?ty.t:null,mk:g.tg,tg:g.tg,g:g.t})}
   // 林野火災・大ヒノコは時間制限のない「その場の災害」なので指令リストには入れない（ポンプ車・班も自動で消しに行く）
+  for(const x of L){const at=x.k==='dev'?DCENT(dEv.id):(x.mk?distOf(x.mk.x,x.mk.y):null);x.at=(at?at.name:homeName()).replace(/分団$/,'')}
   // 残り時間が少ない順
   return L.sort((a,b)=>(a.t==null?1e4:a.t)-(b.t==null?1e4:b.t))}
 let ordPin=null,ordList=[],ordN=0,ordHtml='';
@@ -1623,7 +1624,7 @@ function drawOrders(){let el=document.getElementById('orders'),mo=document.getEl
   const tb=document.getElementById('toasts'),n=ordList.length,open=n>=2&&performance.now()<ordOpenUntil;
   const mt=n>=2?`ほか${n-1}件 ${open?'▲':'▼'}`:'';if(mo.textContent!==mt)mo.textContent=mt;mo.hidden=n<2;
   if(!open){if(!el.hidden){el.hidden=true;ordHtml='';tb.style.top=''}return}
-  const cur=ordCur(),h=ordList.map((x,i)=>`<button class="orow ${x===cur?'cur':''}" data-ord="${x.k}"><span class="on">${x===cur?'▶':i+1}</span><span class="onm">${x.ic} ${x.name}</span><small>${x.t==null?'急いで':'あと'+Math.max(0,Math.ceil(x.t))+'秒'}</small></button>`).join('');
+  const cur=ordCur(),h=ordList.map((x,i)=>`<button class="orow ${x===cur?'cur':''}" data-ord="${x.k}"><span class="on">${x===cur?'▶':i+1}</span><span class="onm">${x.ic} ${x.name}<em>📍${x.at}</em></span><small>${x.t==null?'急いで':'あと'+Math.max(0,Math.ceil(x.t))+'秒'}</small></button>`).join('');
   if(h!==ordHtml){el.innerHTML=h;ordHtml=h;el.hidden=false;tb.style.top=(el.getBoundingClientRect().bottom+6)+'px'}el.hidden=false}
 updGuide=(o=>function(){o();
   if(S.started&&S.f.sold)ordList=incidents();else ordList=[];
@@ -1631,13 +1632,17 @@ updGuide=(o=>function(){o();
   const n=ordList.length;
   if(n>=2&&n>ordN&&!S.ta){snd('tick');ga('orders_overlap',{n})}
   ordN=n;
-  if(n>=2&&!waterLow()){const c=ordCur();setGuide({t:c.g,tg:c.tg,mode:'alert'});document.getElementById('goalTag').textContent=`指令${ordList.indexOf(c)+1}/${n}`}
+  if(n>=2&&!waterLow()){const c=ordCur();setGuide({t:`📍${c.at}：${c.g}`,tg:c.tg,mode:'alert'});document.getElementById('goalTag').textContent=`指令${ordList.indexOf(c)+1}/${n}`}
   drawOrders();recId=calcRec()})(updGuide);
 document.addEventListener('click',e=>{if(e.target.closest('#ordMore')){ordOpenUntil=performance.now()<ordOpenUntil?0:performance.now()+3000;snd('pick');drawOrders();return}
   const b=e.target.closest('[data-ord]');if(!b)return;ordPin=b.dataset.ord;ordOpenUntil=0;const x=ordList.find(o=>o.k===ordPin);if(x)snd('pick');updGuide()});
 cv.addEventListener('pointerdown',()=>{if(ordOpenUntil){ordOpenUntil=0;drawOrders()}});
 // 新しい指令が来たとき、ほかの指令も出ていればお知らせ
-dispatch=(o=>function(title,sub,opts){o(title,sub,opts);const n=incidents().length;if(n>=2){const b=document.querySelector('.modal .box .btn');if(b)b.insertAdjacentHTML('beforebegin',`<p class="note ordnote">⚠️ ほかにも指令が出ています（全部で${n}件）。画面上の「ほか◯件」を押すと一覧が見られるよ</p>`)}})(dispatch);
+let ordLater=null;
+dispatch=(o=>function(title,sub,opts){const prev=ordList.length?ordCur():null;o(title,sub,opts);const n=incidents().length;
+  if(n>=2){const b=document.querySelector('.modal .box .btn');if(b)b.insertAdjacentHTML('beforebegin',`<p class="note ordnote">⚠️ ほかにも指令が出ています（全部で${n}件）。画面上の「ほか◯件」を押すと一覧が見られるよ</p>`);
+    if(prev){ordLater=prev.k;const box=document.querySelector('.modal .box');if(box)[...box.querySelectorAll('[data-act=go]')].forEach(x=>{if(/あとで/.test(x.textContent))x.remove()});box.insertAdjacentHTML('beforeend',`<button class="btn sub" data-act="ordlater">あとで向かう（${prev.name}を続ける）</button>`)}}})(dispatch);
+document.addEventListener('click',e=>{if(!e.target.closest('[data-act=ordlater]'))return;closeModal();if(ordLater){ordPin=ordLater;const x=incidents().find(o=>o.k===ordLater);toast(`「${x?x.name:'いまの指令'}」を続けよう。新しい指令は「ほか◯件」から選べるよ`,'ok')}ga('dispatch',{how:'later'});updGuide()});
 // 地図の上に、指令の番号を出す
 drawWeather=(o=>function(t){o(t);if(ordList.length<2)return;const x=ordCur();if(!x||!x.mk)return;
   const sp=toScreen(x.mk.x,x.mk.y);if(!(sp.x>0&&sp.x<W&&sp.y>140&&sp.y<H))return;
@@ -1656,6 +1661,7 @@ update=(o=>function(dt){o(dt);if(!boxCompensate.done&&S.started){boxCompensate.d
 #orders small{flex:none;font-size:11px;opacity:.85}
 #ordMore{pointer-events:auto;flex:none;margin-left:auto;border:0;border-radius:999px;background:#fff;color:var(--shu);font:inherit;font-size:12px;font-weight:900;padding:5px 9px;cursor:pointer;white-space:nowrap}
 #ordMore[hidden]{display:none}
+#orders .onm em{display:block;font-style:normal;font-size:11px;font-weight:700;opacity:.8}
 .ordnote{color:#b3261e!important;font-weight:700}`;document.head.appendChild(st)})();
 
 /* ===================== 団員の記録に「越せるかな？」 ===================== */
@@ -1685,6 +1691,13 @@ startQuake=(o=>function(){if(ordBusy()){eqT=15;return}o()})(startQuake);
 startRain=(o=>function(){if(ordBusy()){rainT=15;return}o()})(startRain);
 startDev=(o=>function(id){if(ordBusy()){devT=20;return}o(id)})(startDev);
 updEmerg=(o=>function(dt){if(!em&&ordBusy()&&emT<10)emT=10;o(dt)})(updEmerg);
+
+/* ===================== 土嚢を積み終わったら自動で手放す ===================== */
+function sandDone(){if(!ty)return true;if(ty.ph!=='warn')return true;const as=activeSegs().filter(g=>g.danger);return as.length>0&&as.every(g=>g.sacks>=needSacks(g))}
+update=(o=>function(dt){o(dt);if(S.sand>0&&sandDone()){const n=S.sand;S.sand=0;toast(ty?`堤防は全部OK！ 余った土嚢${n}個は置いていったよ`:`台風が終わったので、土嚢${n}個を置いていったよ`,'ok')}})(update);
+/* ===================== 団員モード（?dan で開いた端末は、GAで団員として分けて記録） ===================== */
+const isMember=()=>{try{return localStorage.getItem('suita119-member')==='1'}catch(e){return false}};
+setTimeout(()=>{if(isMember()&&/[?&]dan/.test(location.search))toast('団員モード：この端末の記録は「団員」として分けて集計します','ok')},1500);
 
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
