@@ -39,7 +39,12 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 .row{display:flex;gap:6px;align-items:center;max-width:560px;width:100%;margin:0 auto}
 .pill{display:flex;align-items:center;gap:5px;background:var(--panel);border-radius:999px;padding:3px 10px 3px 3px;box-shadow:0 2px 8px rgba(27,39,64,.16);min-width:0;transition:transform .12s}
 .pill b{font-family:var(--display);font-weight:400;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
-.pill.coin b{font-size:20px;color:#8a5a00}
+.pill.coin b{font-size:20px;color:#5c3b00}
+.pill.coin,#pBag{flex:none}
+#muteBtn{padding:0;width:34px;font-size:16px}
+@media (max-width:370px){.row{gap:4px}.pill.coin b{font-size:18px}.hearts{padding:5px 7px}}
+.hearts{flex:none;align-items:center}
+.hearts .hpn{font-family:var(--display);font-weight:400;font-size:15px;margin-left:3px;color:var(--shu);font-variant-numeric:tabular-nums}
 .pill.bump{transform:scale(1.14)}
 .pill.full{box-shadow:0 0 0 2px var(--shu),0 2px 8px rgba(27,39,64,.16)}
 .pill.full b{color:var(--shu)}
@@ -173,7 +178,7 @@ label.nm{display:block;margin:12px 0 4px;font-size:13px;font-weight:700;text-ali
     <div class="pill" id="pBag"><span class="ic bag"></span><b id="hBag">0/10</b></div>
     <div class="hearts" id="hHeart" aria-label="体力"></div>
     <span class="grow"></span>
-    <button class="rbtn" id="muteBtn" aria-label="音のオンオフ">音 ON</button>
+    <button class="rbtn" id="muteBtn" aria-label="音のオンオフ">🔊</button>
     <button class="rbtn" id="menuBtn">MENU</button>
   </div>
   <div class="rrow"><div class="rank"><span class="badge" id="hRank">団員</span><span class="rbar"><i id="hRankBar"></i></span></div><span class="town" id="hTown">吹三分団</span></div>
@@ -2113,8 +2118,8 @@ function hud(){
     document.getElementById('hRank').textContent=RANKS[S.rank];document.getElementById('hRankBar').style.width=(rankProg()*100)+'%';
     document.getElementById('hBag').textContent=S.sand>0?`${S.sand}/${cap()}`:`${carry()}/${cap()}`;document.getElementById('pBag').classList.toggle('sand',S.sand>0);
     document.getElementById('pBag').classList.toggle('full',carry()>=cap());
-    document.getElementById('hHeart').innerHTML=Array.from({length:maxHp()},(_,i)=>`<i class="${i<P.hp?'':'off'}"></i>`).join('');
-    document.getElementById('muteBtn').textContent=S.muted?'音 OFF':'音 ON'}
+    document.getElementById('hHeart').innerHTML=maxHp()>5?`<i></i><b class="hpn">${Math.max(0,Math.ceil(P.hp))}/${maxHp()}</b>`:Array.from({length:maxHp()},(_,i)=>`<i class="${i<P.hp?'':'off'}"></i>`).join('');
+    document.getElementById('muteBtn').textContent=S.muted?'🔇':'🔊'}
   const rb=document.getElementById('ride');const nk=P.ride?null:nearRide();const show=!!P.ride||!!nk;
   rb.hidden=!show;if(show){const tx=P.ride?`${RIDES[P.ride].name}から降りる`:`${RIDES[nk].name}に乗る`;if(rb.textContent!==tx)rb.textContent=tx;rb.classList.toggle('off',!!P.ride)}
   document.getElementById('hint').hidden=moved||show;
