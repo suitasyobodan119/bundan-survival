@@ -42,6 +42,10 @@ body{font-family:var(--body);font-size:14px;overscroll-behavior:none;-webkit-use
 .pill.coin b{font-size:20px;color:#5c3b00}
 .pill.coin,#pBag{flex:none}
 #muteBtn{padding:0;width:34px;font-size:16px}
+#hud .row>*{flex-shrink:0}
+.row.t1{gap:4px}.row.t1 .pill{padding-right:7px}.row.t1 .pill.coin b{font-size:17px}.row.t1 .pill b,.row.t1 .hearts .hpn{font-size:13px}.row.t1 .ic{width:22px;height:22px}.row.t1 .rbtn{padding:0 8px;font-size:11px}.row.t1 #muteBtn{width:30px;padding:0;font-size:14px}
+.row.t2 #pBag .ic{display:none}.row.t2 #pBag{padding-left:8px}.row.t2 .hearts{padding:5px 6px}.row.t2 .hearts i{width:11px;height:11px}
+.row.t3 #muteBtn{display:none}
 @media (max-width:370px){.row{gap:4px}.pill.coin b{font-size:18px}.hearts{padding:5px 7px}}
 .hearts{flex:none;align-items:center}
 .hearts .hpn{font-family:var(--display);font-weight:400;font-size:15px;margin-left:3px;color:var(--shu);font-variant-numeric:tabular-nums}
@@ -1106,6 +1110,7 @@ checkBadges=(o=>function(s){if(S&&S.ta)return 0;return o(s)})(checkBadges);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;
   if(a==='ta')taIntro();else if(a==='tago')taStart();else if(a==='tasave')taSave();else if(a==='tanext')taIntro();else if(a==='taexit')taExit();
   else if(a==='tahome'){taPick=true;pickHome(false)}
+  else if(a==='sfx'){S.muted=!S.muted;save();b.textContent=`効果音：${S.muted?'OFF':'ON'}`}
   else if(a==='bgm'){S.bgmOff=!S.bgmOff;save();b.textContent=`BGM：${S.bgmOff?'OFF':'ON'}`}
   else if(a==='taclr'){if(b.dataset.arm){try{localStorage.removeItem(TA_KEY)}catch(x){}taIntro()}else{b.dataset.arm='1';b.textContent='もう一度押すと消えます'}}});
 
@@ -1704,6 +1709,11 @@ update=(o=>function(dt){o(dt);if(S.sand>0&&sandDone()){const n=S.sand;S.sand=0;t
 const isMember=()=>{try{return localStorage.getItem('suita119-member')==='1'}catch(e){return false}};
 setTimeout(()=>{if(isMember()&&/[?&]dan/.test(location.search))toast('団員モード：この端末の記録は「団員」として分けて集計します','ok')},1500);
 
+/* ===================== 上の段（コイン・荷物・体力・MENU）を画面に収める ===================== */
+function hudFit(){const r=document.querySelector('#hud .row');if(!r)return;r.classList.remove('t1','t2','t3');
+  for(const c of ['t1','t2','t3']){if(r.scrollWidth<=r.clientWidth+1)break;r.classList.add(c)}}
+addEventListener('resize',()=>setTimeout(hudFit,50));if(document.fonts&&document.fonts.ready)document.fonts.ready.then(hudFit);setTimeout(hudFit,1500);
+
 /* ===================== 更新 ===================== */
 const vehBlocked=(x,y)=>blocked(x,y)||(Math.abs(y-riverY(x))<36&&Math.abs(x)>16)||((x+190)/150)**2+((y-1560)/90)**2<1;
 let riverW=0;
@@ -2113,7 +2123,7 @@ function draw(t){
 let hudKey='';
 function hud(){
   const tn=townName()+(nightAmt()>.5?' 🌙':''),te=document.getElementById('hTown');if(te.textContent!==tn)te.textContent=tn;
-  const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand,maxHp(),S.rank,S.merit].join(',');if(k!==hudKey){hudKey=k;
+  const k=[S.coins,carry(),cap(),P.hp,S.muted,S.sand,maxHp(),S.rank,S.merit].join(',');if(k!==hudKey){hudKey=k;setTimeout(hudFit,0);
     document.getElementById('hCoin').textContent=S.coins>=10000?(Math.floor(S.coins/1000)/10)+'万':S.coins;
     document.getElementById('hRank').textContent=RANKS[S.rank];document.getElementById('hRankBar').style.width=(rankProg()*100)+'%';
     document.getElementById('hBag').textContent=S.sand>0?`${S.sand}/${cap()}`:`${carry()}/${cap()}`;document.getElementById('pBag').classList.toggle('sand',S.sand>0);
@@ -2151,7 +2161,7 @@ function intro(){modal(`<h2>分団サバイバル</h2><p class="lead">消防団�
 function cont(){modal(`<h2>おかえり！</h2><p class="lead">前回のつづきから遊べます</p><p class="note">コイン ${S.coins}枚・やぐら Lv${S.lv.yagura}・団員 ${S.crew}人</p>${WARN}<button class="btn" data-act="close">つづきから</button><button class="btn sub" data-act="reset">はじめから</button>`)}
 function eqHtml(){return `<div class="eqgrid">${Object.keys(EQ).map(k=>`<div class="eqi r${S.eq[k]}"><b>${EQ[k].name}：${RARE[S.eq[k]]}${eqp(k)?'+'+eqp(k):''}</b>${EQ[k].fx[S.eq[k]]||'まだ持っていない'}</div>`).join('')}</div>`}
 function rankHtml(){const nx=S.rank<6?`次の「${RANKS[S.rank+1]}」まで 功績あと${RANK_REQ[S.rank+1]-S.merit}`:'最高の階級！';return `<p class="lead">階級：${RANKS[S.rank]}（功績 ${S.merit}）</p><div class="prog"><i style="width:${rankProg()*100}%"></i></div><p class="note">${nx}<br>火を消す・ヒノコを倒す・人を助ける・台風から町を守ると功績がたまる</p>`}
-function menu(){modal(`<h2>メニュー</h2><button class="btn sub" data-act="pickhome">所属分団：${homeName()}（変える）</button>${rankHtml()}<div class="row2"><button class="btn sub" data-act="ta">🏆 3分チャレンジ</button><button class="btn sub" data-act="bgm">BGM：${S.bgmOff?'OFF':'ON'}</button></div>${dailyHtml()}${badgeHtml()}<h3 class="sec">装備</h3>${eqHtml()}<details class="how"><summary>遊び方</summary>${LOOP}</details><button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
+function menu(){modal(`<h2>メニュー</h2><button class="btn sub" data-act="pickhome">所属分団：${homeName()}（変える）</button>${rankHtml()}<div class="row2"><button class="btn sub" data-act="ta">🏆 3分チャレンジ</button><button class="btn sub" data-act="bgm">BGM：${S.bgmOff?'OFF':'ON'}</button><button class="btn sub" data-act="sfx">効果音：${S.muted?'OFF':'ON'}</button></div>${dailyHtml()}${badgeHtml()}<h3 class="sec">装備</h3>${eqHtml()}<details class="how"><summary>遊び方</summary>${LOOP}</details><button class="btn" data-act="close">ゲームにもどる</button><button class="btn sub" data-act="savequit">セーブしてやめる</button><a class="fb" href="https://forms.gle/12nXo4Chy7ChWuWP6" target="_blank" rel="noopener">感想を送る（1分）</a><button class="btn sub" data-act="reset">次の人のために最初からにする</button><p class="fic">※このゲームはフィクションです。登場する分団名や、地域で起きる災害の設定は、実際の地域とは関係ありません。</p>`)}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act;audio();
   if(a==='start'){S.started=true;save();closeModal();if(!S.homeSet)pickHome(true)}
   else if(a==='home')setHome(b.dataset.v);
