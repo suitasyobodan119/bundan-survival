@@ -1721,7 +1721,7 @@ const HK_DIFF={
   n:{name:'ふつう',  icon:'🔥',iv:.5, max:11,sp:[70,115], r:30,hp2:.25,big:9, bigHp:6, note:'2回たたくヒノコや、大ヒノコも出る'},
   h:{name:'ハード',  icon:'💀',iv:.17,max:30,sp:[110,180],r:25,hp2:.35,big:3.5,bigHp:9, note:'ヒノコがワラワラ！ 巨大ヒノコは割れて分裂する'}};
 const HK_TIME=30,HK_KEY='bundan-mini-rank';
-let hk=null,hkGlobal=null;
+let hk=null,hkGlobal=null,hkPress=[];
 const hkRank=()=>{try{return JSON.parse(localStorage.getItem(HK_KEY)||'[]')}catch(e){return[]}};
 function hkLoadGlobal(){if(!TA_FORM.csv)return Promise.resolve(null);
   return fetch(TA_FORM.csv+'&_='+Date.now(),{cache:'no-store'}).then(r=>r.text()).then(tx=>{
@@ -1735,16 +1735,22 @@ function hkEl(){let o=document.getElementById('hk');if(o)return o;
   document.body.insertAdjacentHTML('beforeend',`<div id="hk" hidden><canvas id="hkCv"></canvas><div id="hkHud"><span id="hkScore">0点</span><span id="hkCombo"></span><span id="hkTime">30</span></div><div id="hkBar"><i></i></div><div id="hkPanel"></div></div>`);
   o=document.getElementById('hk');const cv=document.getElementById('hkCv');
   cv.addEventListener('pointerdown',e=>{e.preventDefault();hkTap(e.clientX,e.clientY)});
+  o.addEventListener('pointerdown',()=>{const n=performance.now();hkPress.push(n);hkPress=hkPress.filter(t=>n-t<1500)},true);
   o.addEventListener('click',e=>{const b=e.target.closest('[data-hk]');if(!b)return;const a=b.dataset.hk;
-    if(a==='e'||a==='n'||a==='h')hkStart(a);else if(a==='again')hkStart(hk.dk);else if(a==='menu')hkIntro();else if(a==='close')hkClose();else if(a==='save')hkSave()});
+    // 連打の勢いで押してしまわないように：0.9秒に3回以上タップしていたらボタンは無視
+    const n=performance.now();if(hkPress.filter(t=>n-t<900).length>=3){b.classList.add('hkshake');setTimeout(()=>b.classList.remove('hkshake'),400);return}
+    if(a==='e'||a==='n'||a==='h')hkStart(a);else if(a==='again')hkStart(hk.dk);else if(a==='menu')hkIntro();else if(a==='close')hkClose();else if(a==='save')hkSave();else if(a==='ranks')hkRanks()});
   addEventListener('resize',hkResize);return o}
 function hkResize(){const cv=document.getElementById('hkCv');if(!cv)return;const d=Math.min(2,devicePixelRatio||1);cv.width=innerWidth*d;cv.height=innerHeight*d;cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';cv.getContext('2d').setTransform(d,0,0,d,0,0)}
 function hkPanel(html){const p=document.getElementById('hkPanel');p.innerHTML=html?`<div class="hkbox">${html}</div>`:'';p.hidden=!html}
 function hkIntro(){audio();const o=hkEl();o.hidden=false;paused=true;hkResize();if(hk&&hk.raf)cancelAnimationFrame(hk.raf);hk={st:'menu',ms:[],fx:[],dk:hk&&hk.dk||'e'};hkDrawBg(performance.now());
   hkPanel(`<h2>30秒 ヒノコたたき</h2><p class="hkl">ヒノコをタップして消そう！ 30秒で何点とれるかな？</p>
   ${Object.entries(HK_DIFF).map(([k,d])=>`<button class="btn ${k==='h'?'hkhard':k==='n'?'':'sub'}" data-hk="${k}"><b>${d.icon} ${d.name}</b><small>${d.note}</small></button>`).join('')}
-  <button class="btn sub" data-hk="close">${/[?&]mini/.test(location.search)?'本編「分団サバイバル」で遊ぶ':'ゲームにもどる'}</button>`);
+  <button class="btn sub" data-hk="ranks">🏆 ランキングを見る</button><button class="btn sub" data-hk="close">${/[?&]mini/.test(location.search)?'本編「分団サバイバル」で遊ぶ':'ゲームにもどる'}</button>`);
   hkLoadGlobal()}
+function hkRanks(){const body=()=>Object.entries(HK_DIFF).map(([k,d])=>`<h3 class="hks">${d.icon} ${d.name}</h3>${hkTable(hkTop(k))}`).join('');
+  hkPanel(`<h2>🏆 ヒノコたたき ランキング</h2><p class="hkl">難しさごとの上位3位</p><div id="hkRk">${body()}</div><button class="btn" data-hk="menu">もどる</button>`);
+  hkLoadGlobal().then(()=>{const b=document.getElementById('hkRk');if(b)b.innerHTML=body()})}
 function hkClose(){const o=document.getElementById('hk');if(o)o.hidden=true;if(hk&&hk.raf)cancelAnimationFrame(hk.raf);hk=null;paused=!!document.querySelector('.modal');last=performance.now()}
 function hkStart(dk){audio();const D=HK_DIFF[dk];if(hk&&hk.raf)cancelAnimationFrame(hk.raf);
   hk={st:'count',dk,D,t:HK_TIME,cd:3,ms:[],fx:[],score:0,kills:0,big:0,combo:0,best:0,lastHit:0,spawn:0,bigT:D.big?D.big*.6:0,saved:false,raf:0,last:performance.now()};
@@ -1776,7 +1782,7 @@ function hkLoop(now){if(!hk)return;const dt=Math.min(.05,(now-hk.last)/1000);hk.
     hk.spawn-=dt*(rush?1.6:1);const cap=D.max+(rush?Math.round(D.max*.4):0);
     while(hk.spawn<=0){hk.spawn+=D.iv*(.6+Math.random()*.8);if(hk.ms.filter(m=>!m.big).length<cap)hkSpawn(false)}
     if(D.big){hk.bigT-=dt;if(hk.bigT<=0){hk.bigT=D.big*(.8+Math.random()*.4);if(hk.ms.filter(m=>m.big).length<(hk.dk==='h'?3:1))hkSpawn(true)}}
-    if(hk.t<=0){hk.t=0;hkEnd()}}
+    if(hk.t<=0){hk.t=0;document.getElementById('hkTime').textContent='0';document.querySelector('#hkBar i').style.transform='scaleX(0)';hkEnd();return}}
   for(const m of hk.ms){m.age+=dt;m.ph+=dt*6;m.hit=Math.max(0,m.hit-dt);
     // ふわふわ蛇行。ハードは急に向きを変える
     const wob=hk.dk==='h'?140:70;m.vx+=Math.cos(m.ph*.7)*wob*dt;m.vy+=Math.sin(m.ph*.9)*wob*dt;
@@ -1821,14 +1827,20 @@ function hkDraw(now){hkDrawBg(now);const c=document.getElementById('hkCv').getCo
     c.font='900 22px sans-serif';c.fillText(`${hk.D.icon} ${hk.D.name}　ヒノコをタップ！`,W/2,H/2-90)}
   if(hk.st==='play'&&hk.t<10&&hk.t>9){c.fillStyle='#ffd84d';c.textAlign='center';c.font='900 34px "Dela Gothic One",sans-serif';c.strokeStyle='#1b2740';c.lineWidth=5;c.strokeText('ラスト10秒！',W/2,H*.4);c.fillText('ラスト10秒！',W/2,H*.4)}}
 function hkEnd(){hk.st='end';snd('buy');buzz([60,40,60]);const D=hk.D;ga('mini_finish',{diff:D.name,score:hk.score,kills:hk.kills});
-  hkResult();hkLoadGlobal().then(()=>{if(!hk||hk.st!=='end'||hk.saved)return;const b=document.getElementById('hkTopBox');if(b)b.innerHTML=hkTable(hkTop(hk.dk))})}
+  hkTimeUp();const k=hk;hkLoadGlobal();
+  setTimeout(()=>{if(hk!==k)return;hkResult();hkLock(1500)},1600)}
+function hkTimeUp(){const c=document.getElementById('hkCv').getContext('2d'),W=innerWidth,H=innerHeight;hkDraw(performance.now());
+  c.fillStyle='rgba(10,14,26,.6)';c.fillRect(0,0,W,H);c.textAlign='center';c.strokeStyle='#1b2740';c.lineWidth=8;
+  c.font='900 52px "Dela Gothic One",sans-serif';c.fillStyle='#ffd84d';c.strokeText('タイムアップ！',W/2,H/2-30);c.fillText('タイムアップ！',W/2,H/2-30);
+  c.font='900 64px "Dela Gothic One",sans-serif';c.fillStyle='#fff';c.strokeText(hk.score+'点',W/2,H/2+60);c.fillText(hk.score+'点',W/2,H/2+60)}
+function hkLock(ms){const b=document.querySelector('#hkPanel .hkbox');if(!b)return;b.classList.add('lock');setTimeout(()=>b.classList.remove('lock'),ms)}
 function hkResult(me){const D=hk.D,list=hkTop(hk.dk,me?[me]:null),place=me?list.indexOf(me)+1:list.filter(x=>x.s>hk.score).length+1;
   hkPanel(`<h2>${D.icon} ${D.name} しゅうりょう！</h2><div class="hkscore">${hk.score}<small>点</small></div>
   <p class="hkl">消したヒノコ ${hk.kills}匹${hk.big?`・巨大ヒノコ ${hk.big}匹`:''}・最高 ${hk.best}コンボ<br>${place<=3?`<b class="hkin">${D.name}ランキング ${place}位に入るよ！</b>`:'よくがんばった！'}</p>
   ${me?'':`<label class="nm">なまえ（8文字まで）<input id="hkName" maxlength="8" placeholder="ニックネーム" autocomplete="off"></label><button class="btn" data-hk="save">ランキングに登録</button>`}
   <h3 class="hks">${D.name}ランキング（上位3位）</h3><div id="hkTopBox">${hkTable(list,me)}</div>
   <a class="fb ig" href="${IG_URL}" target="_blank" rel="noopener">📷 Instagramをフォローしてね</a>
-  <button class="btn sub" data-hk="again">もう一回（${D.name}）</button><button class="btn sub" data-hk="menu">難しさを変える</button><button class="btn sub" data-hk="close">${/[?&]mini/.test(location.search)?'本編「分団サバイバル」で遊ぶ':'ゲームにもどる'}</button>`)}
+  <button class="btn sub" data-hk="again">もう一回（${D.name}）</button><button class="btn sub" data-hk="menu">難しさを変える・ランキング</button><button class="btn sub" data-hk="close">${/[?&]mini/.test(location.search)?'本編「分団サバイバル」で遊ぶ':'ゲームにもどる'}</button>`)}
 function hkSave(){if(!hk||hk.saved)return;const el=document.getElementById('hkName'),v=(el&&el.value||'').trim();
   if(v&&ngName(v)){if(!document.getElementById('hkNg'))el.closest('label').insertAdjacentHTML('afterend','<p class="hkng" id="hkNg">そのなまえは使えないよ。ほかのなまえにしてね</p>');el.value='';el.focus();ga('name_blocked',{});return}
   const D=hk.D,me={n:v.slice(0,8)||'ななし',b:homeName(),s:hk.score,d:D.name,t:new Date().toISOString()};hk.saved=true;
@@ -1859,6 +1871,7 @@ setTimeout(()=>{if(/[?&]mini/.test(location.search))hkIntro()},300);
 #hkBar i{display:block;height:100%;background:#ffd84d;transform-origin:left center}
 #hkPanel{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(10,14,26,.55);overflow:auto}
 #hkPanel[hidden]{display:none}
+.hkshake{animation:ngshk .35s}
 .hkbox{width:min(420px,100%);background:#fff;border-radius:20px;padding:18px 16px;box-shadow:0 10px 40px rgba(0,0,0,.4);max-height:100%;overflow:auto}
 .hkbox h2{margin:0 0 6px;font-family:var(--display);font-weight:400;font-size:24px;color:var(--shu);text-align:center}
 .hkbox .btn{width:100%;margin-top:8px}.hkbox .btn small,.btn.hkmenu small{display:block;font-family:'Zen Kaku Gothic New',sans-serif;font-size:12px;opacity:.9;font-weight:700;letter-spacing:0}
@@ -1869,6 +1882,7 @@ setTimeout(()=>{if(/[?&]mini/.test(location.search))hkIntro()},300);
 .hks{margin:14px 0 4px;font-size:15px;text-align:center}
 .hkt{width:100%;border-collapse:collapse;font-size:20px;font-weight:900}.hkt td{padding:6px 4px;border-bottom:1px solid #eee}.hkt td:first-child{width:40px;font-size:24px}.hkt td:last-child{text-align:right;white-space:nowrap}.hkt b{font-family:var(--display);font-weight:400;font-size:26px;color:var(--shu)}.hkt small{display:block;font-size:11px;color:#6b7486;font-weight:700}.hkt tr.me td{background:#fff4d6}
 .hkn{text-align:center;color:#6b7486;font-weight:700}
+.hkbox.lock .btn,.hkbox.lock a,.hkbox.lock input{pointer-events:none;opacity:.45}.hkbox .btn,.hkbox a{transition:opacity .3s}
 .hkng{color:#c62828;font-weight:800;margin:4px 0 0;text-align:center}
 .hkbox .fb.ig{display:block;margin-top:12px;text-align:center}
 .btn.hkmenu{background:#e5432a}.btn.hkmenu small{display:block;font-size:11px;font-weight:700;opacity:.9}`;document.head.appendChild(st)})();
