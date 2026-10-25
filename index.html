@@ -1754,7 +1754,7 @@ function hkRanks(){const body=()=>Object.entries(HK_DIFF).map(([k,d])=>`<h3 clas
 function hkClose(){const o=document.getElementById('hk');if(o)o.hidden=true;if(hk&&hk.raf)cancelAnimationFrame(hk.raf);hk=null;paused=!!document.querySelector('.modal');last=performance.now()}
 function hkStart(dk){audio();const D=HK_DIFF[dk];if(hk&&hk.raf)cancelAnimationFrame(hk.raf);
   hk={st:'count',dk,D,t:HK_TIME,cd:3,ms:[],fx:[],score:0,kills:0,big:0,combo:0,best:0,lastHit:0,spawn:0,bigT:D.big?D.big*.6:0,saved:false,raf:0,last:performance.now()};
-  hkPanel('');document.getElementById('hkScore').textContent='0点';ga('mini_start',{diff:D.name});hk.raf=requestAnimationFrame(hkLoop)}
+  hkPanel('');document.getElementById('hkScore').textContent='0点';ga('mini_start',{diff:D.name,game:'ヒノコ'});hk.raf=requestAnimationFrame(hkLoop)}
 function hkSpawn(big){const D=hk.D,W=innerWidth,H=innerHeight,side=Math.random()*4|0,m=20;let x,y;
   if(side===0){x=Math.random()*W;y=H+m}else if(side===1){x=-m;y=H*.3+Math.random()*H*.6}else if(side===2){x=W+m;y=H*.3+Math.random()*H*.6}else{x=Math.random()*W;y=H*.55+Math.random()*H*.4}
   const sp=(D.sp[0]+Math.random()*(D.sp[1]-D.sp[0]))*(big?.55:1)*(hk.t<10?1.15:1);
@@ -1826,7 +1826,7 @@ function hkDraw(now){hkDrawBg(now);const c=document.getElementById('hkCv').getCo
   if(hk.st==='count'){const n=Math.ceil(hk.cd);c.fillStyle='rgba(0,0,0,.35)';c.fillRect(0,0,W,H);c.fillStyle='#fff';c.textAlign='center';c.font='900 120px "Dela Gothic One",sans-serif';c.fillText(n>0?n:'',W/2,H/2+40);
     c.font='900 22px sans-serif';c.fillText(`${hk.D.icon} ${hk.D.name}　ヒノコをタップ！`,W/2,H/2-90)}
   if(hk.st==='play'&&hk.t<10&&hk.t>9){c.fillStyle='#ffd84d';c.textAlign='center';c.font='900 34px "Dela Gothic One",sans-serif';c.strokeStyle='#1b2740';c.lineWidth=5;c.strokeText('ラスト10秒！',W/2,H*.4);c.fillText('ラスト10秒！',W/2,H*.4)}}
-function hkEnd(){hk.st='end';snd('buy');buzz([60,40,60]);const D=hk.D;ga('mini_finish',{diff:D.name,score:hk.score,kills:hk.kills});
+function hkEnd(){hk.st='end';snd('buy');buzz([60,40,60]);const D=hk.D;ga('mini_finish',{game:'ヒノコ',diff:D.name,score:hk.score,kills:hk.kills});
   hkTimeUp();const k=hk;hkLoadGlobal();
   setTimeout(()=>{if(hk!==k)return;hkResult();hkLock(1500)},1600)}
 function hkTimeUp(){const c=document.getElementById('hkCv').getContext('2d'),W=innerWidth,H=innerHeight;hkDraw(performance.now());
@@ -1845,7 +1845,7 @@ function hkSave(){if(!hk||hk.saved)return;const el=document.getElementById('hkNa
   if(v&&ngName(v)){if(!document.getElementById('hkNg'))el.closest('label').insertAdjacentHTML('afterend','<p class="hkng" id="hkNg">そのなまえは使えないよ。ほかのなまえにしてね</p>');el.value='';el.focus();ga('name_blocked',{});return}
   const D=hk.D,me={n:v.slice(0,8)||'ななし',b:homeName(),s:hk.score,d:D.name,t:new Date().toISOString()};hk.saved=true;
   const r=hkRank();r.push(me);r.sort((a,b)=>b.s-a.s);try{localStorage.setItem(HK_KEY,JSON.stringify(r.slice(0,90)))}catch(x){}
-  hkSend(me);ga('mini_save',{diff:D.name,score:me.s});hkResult(me)}
+  hkSend(me);ga('mini_save',{game:'ヒノコ',diff:D.name,score:me.s});hkResult(me)}
 function hkSend(e){if(!formOn())return;try{const act=TA_FORM.url.replace(/\/viewform.*$/,'/formResponse');let ifr=document.getElementById('taIfr');
   if(!ifr){ifr=document.createElement('iframe');ifr.name='taIfr';ifr.id='taIfr';ifr.style.display='none';document.body.appendChild(ifr)}
   const f=document.createElement('form');f.method='POST';f.action=act;f.target='taIfr';f.style.display='none';
