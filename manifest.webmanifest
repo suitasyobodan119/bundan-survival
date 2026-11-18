@@ -1,0 +1,17 @@
+{
+  "name": "分団サバイバル｜吹田市消防団のゲーム",
+  "short_name": "分団サバイバル",
+  "description": "消防団になって町を火事から守ろう。吹田市消防団のアクション育成ゲーム",
+  "lang": "ja",
+  "start_url": "./?utm_source=pwa&utm_medium=homescreen",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#22355c",
+  "theme_color": "#22355c",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

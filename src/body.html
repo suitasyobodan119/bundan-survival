@@ -1,0 +1,25 @@
+
+
+<canvas id="cv" aria-label="ゲーム画面。分団の町を上から見た様子"></canvas>
+<div id="hud">
+  <div class="row">
+    <div class="pill coin" id="pCoin"><span class="ic coin"></span><b id="hCoin">0</b></div>
+    <div class="pill" id="pBag"><span class="ic bag"></span><b id="hBag">0/10</b></div>
+    <div class="hearts" id="hHeart" aria-label="体力"></div>
+    <span class="grow"></span>
+    <button class="rbtn" id="muteBtn" aria-label="音のオンオフ">🔊</button>
+    <button class="rbtn" id="menuBtn">MENU</button>
+  </div>
+  <div class="rrow"><div class="rank"><span class="badge" id="hRank">団員</span><span class="rbar"><i id="hRankBar"></i></span></div><span class="town" id="hTown">吹三分団</span></div>
+  <div id="goal"><span class="tag" id="goalTag">目標</span><p id="goalText"></p></div>
+</div>
+<canvas id="mini" width="224" height="224" aria-label="ミニマップ。タップした場所に矢印を出す"></canvas>
+<div id="taBar" hidden></div>
+<div id="zoom"><button id="zIn" aria-label="ズームイン">＋</button><button id="zOut" aria-label="ズームアウト">－</button></div>
+<button id="ride" hidden>ポンプ車に乗る</button>
+<div id="hint">指でなぞると歩くよ</div>
+<div id="zbar" hidden><span>画面が拡大されています</span><button id="zfix">元の大きさに戻す</button><small>戻らない時は、2本指でつまんで縮めてね</small></div>
+<div id="pop"><h3 id="popH"></h3><p id="popP"></p></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div id="modalRoot"></div>
+
